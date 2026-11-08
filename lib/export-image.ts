@@ -7,12 +7,11 @@ export async function downloadLaSoPng(element: HTMLElement | null, hoTen?: strin
     const options = {
         pixelRatio: 3,
         backgroundColor: "#020617",
-        width: 1120,
-        height: 820,
-        style: { width: "1120px", height: "820px", margin: "0", transform: "none" },
+        width: 900,
+        height: 1850,
+        style: { opacity: "1", transform: "none" },
     };
 
-    // Render 2 lượt để trình duyệt nạp đủ font và viền sắc nét trên cả mobile
     await toPng(element, options);
     const dataUrl = await toPng(element, options);
 

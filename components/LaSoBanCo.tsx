@@ -5,6 +5,7 @@ import React, { useRef, useState } from "react";
 import { Download } from "lucide-react";
 import CungCell from "./CungCell";
 import ThienBanCenter from "./ThienBanCenter";
+import LaSoMobileExport from "./LaSoMobileExport";
 import { TAM_HOP_MAP, XUNG_CHIEU_MAP } from "@/lib/tuong-tac";
 import { downloadLaSoPng } from "@/lib/export-image";
 
@@ -17,7 +18,7 @@ const GRID_POS = [
 export default function LaSoBanCo({ cungList, thienBan, selectedChi, onSelectCung, laSo }: any) {
     const [hoveredChi, setHoveredChi] = useState<string | null>(null);
     const [exporting, setExporting] = useState(false);
-    const boardRef = useRef<HTMLDivElement>(null);
+    const exportRef = useRef<HTMLDivElement>(null);
 
     const list = cungList || laSo?.cung_12 || laSo?.cung || [];
     const tb = thienBan || laSo?.thien_ban || laSo?.thienBan;
@@ -31,10 +32,9 @@ export default function LaSoBanCo({ cungList, thienBan, selectedChi, onSelectCun
     };
 
     const handleDownload = async () => {
-        setHoveredChi(null);
         setExporting(true);
         try {
-            await downloadLaSoPng(boardRef.current, tb?.ho_ten, tb?.nam_xem || tb?.nam_xem_han);
+            await downloadLaSoPng(exportRef.current, tb?.ho_ten, tb?.nam_xem || tb?.nam_xem_han);
         } finally {
             setExporting(false);
         }
@@ -43,21 +43,17 @@ export default function LaSoBanCo({ cungList, thienBan, selectedChi, onSelectCun
     return (
         <div className="w-full max-w-5xl mx-auto space-y-2">
             <div className="flex justify-end">
-                <button
-                    onClick={handleDownload}
-                    disabled={exporting}
-                    className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/40 text-xs font-bold transition cursor-pointer"
-                >
+                <button onClick={handleDownload} disabled={exporting} className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/40 text-xs font-bold transition cursor-pointer">
                     <Download className="w-3.5 h-3.5" />
-                    {exporting ? "Đang xuất ảnh HD..." : "Tải ảnh lá số (HD)"}
+                    {exporting ? "Đang xuất ảnh HD..." : "Tải ảnh lá số (Full ĐT)"}
                 </button>
             </div>
 
             <div className="w-full p-2 bg-slate-950 rounded-2xl shadow-2xl border border-slate-800 overflow-x-auto">
-                <div ref={boardRef} className="grid grid-cols-4 grid-rows-4 gap-1.5 min-w-[860px] w-full h-[800px] bg-slate-950 p-1">
+                <div className="grid grid-cols-4 grid-rows-4 gap-1.5 min-w-[860px] w-full h-[800px] bg-slate-950 p-1">
                     {list.map((cung: any, idx: number) => (
                         <div key={cung.chi || idx} className={`${GRID_POS[idx]} w-full h-full overflow-hidden`}>
-                            <CungCell cung={cung} status={getStatus(cung.chi)} isSelected={!exporting && selectedChi === cung.chi} onHover={setHoveredChi} onClick={(c) => onSelectCung && onSelectCung(c)} />
+                            <CungCell cung={cung} status={getStatus(cung.chi)} isSelected={selectedChi === cung.chi} onHover={setHoveredChi} onClick={(c) => onSelectCung && onSelectCung(c)} />
                         </div>
                     ))}
                     <div className="row-start-2 row-end-4 col-start-2 col-end-4 w-full h-full p-1 z-10 overflow-hidden">
@@ -65,6 +61,8 @@ export default function LaSoBanCo({ cungList, thienBan, selectedChi, onSelectCun
                     </div>
                 </div>
             </div>
+
+            <LaSoMobileExport exportRef={exportRef} list={list} tb={tb} />
         </div>
     );
 }

@@ -6,6 +6,7 @@ import LaSoBanCo from "@/components/LaSoBanCo";
 import CungDetail from "@/components/CungDetail";
 import { HoroscopeResult, CungItem } from "@/lib/types";
 import AiLuanPanel from "@/components/AiLuanPanel";
+import AppIntroCard from "@/components/AppIntroCard";
 
 export default function Home() {
   const [loading, setLoading] = useState(false);
@@ -38,6 +39,7 @@ export default function Home() {
 
   return (
     <main className="min-h-screen bg-slate-950 text-slate-100 p-4 md:p-8 flex flex-col items-center">
+      <AppIntroCard hasResult={Boolean(result)} />
       <InputForm onGenerate={handleGenerate} loading={loading} />
 
       {result && (

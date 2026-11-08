@@ -57,7 +57,7 @@ export default function LaSoBanCo({ cungList, thienBan, selectedChi, onSelectCun
             </div>
 
             <div className="w-full p-2 bg-slate-950 rounded-2xl shadow-2xl border border-slate-800 overflow-x-auto">
-                <div className="grid grid-cols-4 grid-rows-4 gap-1.5 min-w-[860px] w-full h-[800px] bg-slate-950 p-1">
+                <div className="grid grid-cols-4 grid-rows-4 gap-1.5 min-w-[920px] w-full h-[920px] bg-slate-950 p-1">
                     {list.map((cung: any, idx: number) => (
                         <div key={cung.chi || idx} className={`${GRID_POS[idx]} w-full h-full overflow-hidden`}>
                             <CungCell cung={cung} status={getStatus(cung.chi)} isSelected={selectedChi === cung.chi} onHover={setHoveredChi} onClick={(c) => onSelectCung && onSelectCung(c)} />

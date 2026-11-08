@@ -79,7 +79,7 @@ export function tinhSaoLuu(namXem: number, namSinh: number, isNam: boolean = tru
 export function parseHour(g: any): number {
     if (typeof g === "number") return g;
     const s = String(g || "").toLowerCase();
-    const m = [["tý", 0], ["ti", 0], ["sửu", 2], ["dần", 4], ["mão", 6], ["thìn", 8], ["tỵ", 10], ["ngọ", 12], ["mùi", 14], ["thân", 16], ["dậu", 18], ["tuất", 20], ["hợi", 22]];
+    const m: [string, number][] = [["tý", 0], ["ti", 0], ["sửu", 2], ["dần", 4], ["mão", 6], ["thìn", 8], ["tỵ", 10], ["ngọ", 12], ["mùi", 14], ["thân", 16], ["dậu", 18], ["tuất", 20], ["hợi", 22]];
     return m.find(([k]) => s.includes(k))?.[1] ?? 12;
 }
 

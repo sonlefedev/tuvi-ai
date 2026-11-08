@@ -46,7 +46,6 @@ export default function Home() {
             thienBan={result.thien_ban}
             selectedChi={selectedCung?.chi || ""}
             onSelectCung={setSelectedCung}
-            badges={(result as any).badges || []}
           />
           {selectedCung && (
             <CungDetail cung={selectedCung} tongQuan={result.tong_quan} namXem={namXem} />

@@ -19,7 +19,7 @@ async function getBestModel(apiKey: string): Promise<string> {
         // Ưu tiên flash-lite hoặc model flash đầu tiên
         activeModelName = available?.find((m: string) => m.includes("lite")) || available?.[0] || "gemini-2.5-flash-lite";
         console.log(`🎯 Đã chọn model tối ưu: ${activeModelName}`);
-        return activeModelName;
+        return activeModelName || "gemini-2.5-flash-lite";
     } catch {
         return "gemini-2.5-flash-lite";
     }

@@ -74,7 +74,7 @@ export function anDayDuPhuTinh(canNam: number, chiNam: number, thangAm: number, 
 
     tot[DIA_CHI[(vtMenh + chiNam) % 12]].push("Thiên Tài");
     tot[DIA_CHI[(vtThan + chiNam) % 12]].push("Thiên Thọ");
-    tot[DIA_CHI[4]].push("Thiên La"); xau[DIA_CHI[10]].push("Địa Võng");
+    xau[DIA_CHI[4]].push("Thiên La"); xau[DIA_CHI[10]].push("Địa Võng");
     xau[DIA_CHI[(vtMenh + 5) % 12]].push("Thiên Thương");
     xau[DIA_CHI[(vtMenh + 7) % 12]].push("Thiên Sứ");
 

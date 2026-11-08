@@ -34,8 +34,8 @@ export default function LaSoBanCo({ cungList, thienBan, selectedChi, onSelectCun
     };
 
     return (
-        <div className="w-full max-w-5xl mx-auto p-2 bg-slate-950 rounded-2xl shadow-2xl border border-slate-800">
-            <div className="grid grid-cols-4 grid-rows-4 gap-1.5 w-full h-[780px]">
+        <div className="w-full max-w-5xl mx-auto p-2 bg-slate-950 rounded-2xl shadow-2xl border border-slate-800 overflow-x-auto">
+            <div className="grid grid-cols-4 grid-rows-4 gap-1.5 min-w-[860px] w-full h-[780px]">
                 {list.map((cung: any, idx: number) => (
                     <div key={cung.chi || idx} className={`${GRID_POS[idx]} w-full h-full overflow-hidden`}>
                         <CungCell

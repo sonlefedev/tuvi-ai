@@ -16,11 +16,11 @@ export default function CungDetail({ cung, tongQuan, namXem }: Props) {
                     <span className="text-xs text-slate-400 font-normal">Đại vận {cung.dai_van} tuổi</span>
                 </h4>
 
-                {cung.sao_luu?.length > 0 && (
+                {(cung.sao_luu?.length ?? 0) > 0 && (
                     <div>
                         <p className="text-xs text-pink-400 font-semibold mb-1">⭐ Sao Lưu năm {namXem}:</p>
                         <div className="flex flex-wrap gap-1.5">
-                            {cung.sao_luu.map((s, idx) => (
+                            {cung.sao_luu?.map((s, idx) => (
                                 <span key={idx} className="text-xs px-2 py-0.5 rounded bg-pink-500/15 text-pink-300 font-bold border border-pink-500/30">{s}</span>
                             ))}
                         </div>

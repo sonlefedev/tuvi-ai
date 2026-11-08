@@ -1,6 +1,7 @@
 // components/InputForm.tsx
 "use client";
 import React, { useState } from "react";
+import { Loader2 } from "lucide-react";
 
 interface Props {
     onGenerate?: (formData: any) => void;
@@ -9,7 +10,7 @@ interface Props {
 }
 
 export default function InputForm({ onGenerate, onSuccess, loading: propLoading }: Props) {
-    const [hoTen, setHoTen] = useState("Nguyễn Văn A");
+    const [hoTen, setHoTen] = useState("");
     const [gioiTinh, setGioiTinh] = useState("Nam");
     const [ngay, setNgay] = useState("4");
     const [thang, setThang] = useState("8");
@@ -21,7 +22,8 @@ export default function InputForm({ onGenerate, onSuccess, loading: propLoading 
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        const payload = { hoTen, gioiTinh, ngay: Number(ngay), thang: Number(thang), nam: Number(nam), gio, namXem: Number(namXem) };
+        if (loading) return;
+        const payload = { hoTen: hoTen.trim() || "Đương số", gioiTinh, ngay: Number(ngay), thang: Number(thang), nam: Number(nam), gio, namXem: Number(namXem) };
         if (onGenerate) {
             onGenerate(payload);
             return;
@@ -46,7 +48,7 @@ export default function InputForm({ onGenerate, onSuccess, loading: propLoading 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
                 <div>
                     <label className="text-slate-400 block mb-1">Họ và tên</label>
-                    <input className="w-full bg-slate-950 border border-slate-700 rounded p-2 text-slate-100" value={hoTen} onChange={e => setHoTen(e.target.value)} />
+                    <input placeholder="Nhập họ tên..." className="w-full bg-slate-950 border border-slate-700 rounded p-2 text-slate-100 placeholder:text-slate-600" value={hoTen} onChange={e => setHoTen(e.target.value)} />
                 </div>
                 <div>
                     <label className="text-slate-400 block mb-1">Giới tính</label>
@@ -79,7 +81,8 @@ export default function InputForm({ onGenerate, onSuccess, loading: propLoading 
                     <input className="w-full bg-slate-950 border border-slate-700 rounded p-2 text-slate-100" value={nam} onChange={e => setNam(e.target.value)} />
                 </div>
             </div>
-            <button type="submit" disabled={loading} className="w-full mt-4 py-2.5 bg-gradient-to-r from-purple-700 to-pink-700 hover:from-purple-600 hover:to-pink-600 text-white font-medium rounded-xl transition duration-200 shadow-lg">
+            <button type="submit" disabled={loading} aria-busy={loading} className="w-full mt-4 py-2.5 flex items-center justify-center gap-2 bg-gradient-to-r from-purple-700 to-pink-700 hover:from-purple-600 hover:to-pink-600 text-white font-medium rounded-xl transition duration-200 shadow-lg disabled:opacity-50 disabled:pointer-events-none cursor-pointer">
+                {loading && <Loader2 className="w-4 h-4 animate-spin" />}
                 {loading ? "Đang an sao & tính toán..." : "An sao & Tính toán"}
             </button>
         </form>

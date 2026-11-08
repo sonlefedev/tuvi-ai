@@ -40,7 +40,7 @@ export default function Home() {
       <InputForm onGenerate={handleGenerate} loading={loading} />
 
       {result && (
-        <div className="w-full max-w-4xl space-y-6 mt-4">
+        <div className="w-full max-w-5xl space-y-6 mt-4">
           <LaSoBanCo
             cungList={result.cung_12}
             thienBan={result.thien_ban}

@@ -1,8 +1,10 @@
 // app/api/auth/route.ts
 import { NextRequest, NextResponse } from "next/server";
 
-const SB_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL || "";
-const SB_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || "";
+const rawA = (process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL || "").trim();
+const rawB = (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || "").trim();
+const SB_URL = rawA.startsWith("http") ? rawA : rawB.startsWith("http") ? rawB : "";
+const SB_KEY = !rawB.startsWith("http") && rawB ? rawB : !rawA.startsWith("http") ? rawA : "";
 
 function sbHeaders(prefer?: string) {
     const isJwt = SB_KEY.startsWith("eyJ");

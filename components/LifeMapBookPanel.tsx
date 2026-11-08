@@ -9,6 +9,7 @@ import { downloadLifeMapBook, LifeMapData } from "@/lib/export-lifemap";
 import { streamAiEndpoint } from "@/lib/ai/stream-client";
 import { notifyTabStatus } from "@/lib/tab-notify";
 import AiProgressLog from "./AiProgressLog";
+import { pushProfileToCloud } from "@/lib/ai/cloud-profile-sync";
 
 const CHAPTERS: { key: keyof LifeMapData; tab: string; title: string }[] = [
     { key: "c1CotCach", tab: "I. Cốt Cách", title: "Chương I. Cốt Cách Bản Mệnh & Định Vị Con Người" },
@@ -31,11 +32,16 @@ export default function LifeMapBookPanel({ result }: { result: HoroscopeResult }
     const cacheId = `${chartKey}_lifemap_v1`;
 
     useEffect(() => {
-        try {
-            const saved = localStorage.getItem(cacheId);
-            setData(saved ? JSON.parse(saved) : null);
-        } catch { setData(null); }
+        const sync = () => {
+            try {
+                const saved = localStorage.getItem(cacheId);
+                setData(saved ? JSON.parse(saved) : null);
+            } catch { setData(null); }
+        };
+        sync();
         setSteps([]);
+        window.addEventListener("tuvi-memory-updated", sync);
+        return () => window.removeEventListener("tuvi-memory-updated", sync);
     }, [cacheId]);
 
     const generateLifeMap = async () => {
@@ -53,6 +59,7 @@ export default function LifeMapBookPanel({ result }: { result: HoroscopeResult }
             if (res?.lifeMap) {
                 setData(res.lifeMap);
                 localStorage.setItem(cacheId, JSON.stringify(res.lifeMap));
+                pushProfileToCloud(chartKey);
                 if (res.memoryNote) {
                     const mem = loadChartMemory(chartKey, compactChart);
                     saveChartMemory({ ...mem, memoryNotes: [...mem.memoryNotes, res.memoryNote] });

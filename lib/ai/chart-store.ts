@@ -1,5 +1,6 @@
 // lib/ai/chart-store.ts
 import { loadChartMemory, saveChartMemory } from "./tuvi-memory-store";
+import { pushProfileToCloud } from "./cloud-profile-sync";
 
 export type ChartKind = "radar" | "bar" | "line";
 
@@ -38,5 +39,6 @@ export function saveChartSpec(chartKey: string, fullCompactChart: string, spec: 
             const mem = loadChartMemory(chartKey, fullCompactChart);
             saveChartMemory({ ...mem, memoryNotes: [...mem.memoryNotes, memoryNote] });
         }
+        pushProfileToCloud(chartKey);
     } catch { }
 }

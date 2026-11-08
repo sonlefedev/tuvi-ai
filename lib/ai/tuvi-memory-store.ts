@@ -1,21 +1,10 @@
 // lib/ai/tuvi-memory-store.ts
 import { getCurrentUser } from "../auth-store";
+import { pushProfileToCloud } from "./cloud-profile-sync";
 
 export interface ChatTurn { role: "user" | "ai"; text: string; ts: number; }
-export interface CungAiReading {
-    chinhTinhBanCung: string;
-    phuTinhTuongTac: string;
-    tamHopXungChieu: string;
-    nhiHopGiapPhiHoa: string;
-    ducKetLoiKhuyen: string;
-}
-export interface ChartMemoryState {
-    chartKey: string;
-    compactChart: string;
-    memoryNotes: string[];
-    messages: ChatTurn[];
-    cungReadings: Record<string, CungAiReading>;
-}
+export interface CungAiReading { chinhTinhBanCung: string; phuTinhTuongTac: string; tamHopXungChieu: string; nhiHopGiapPhiHoa: string; ducKetLoiKhuyen: string; }
+export interface ChartMemoryState { chartKey: string; compactChart: string; memoryNotes: string[]; messages: ChatTurn[]; cungReadings: Record<string, CungAiReading>; }
 
 const PREFIX = "tuvi_ai_profile_v2_";
 
@@ -37,25 +26,16 @@ export function loadChartMemory(chartKey: string, compactChart: string): ChartMe
 
 export function saveChartMemory(state: ChartMemoryState): void {
     if (typeof window === "undefined") return;
-    const trimmed: ChartMemoryState = {
-        ...state,
-        memoryNotes: [...new Set(state.memoryNotes)].slice(-12),
-        messages: state.messages.slice(-20),
-    };
+    const trimmed: ChartMemoryState = { ...state, memoryNotes: [...new Set(state.memoryNotes)].slice(-12), messages: state.messages.slice(-20) };
     const payload = JSON.stringify(trimmed);
-    try {
-        localStorage.setItem(state.chartKey, payload);
-    } catch {
-        // Nếu đầy bộ nhớ trình duyệt, tự xóa các profile cũ khác rồi lưu lại
+    try { localStorage.setItem(state.chartKey, payload); } catch {
         Object.keys(localStorage).filter((k) => k.startsWith(PREFIX) && k !== state.chartKey).forEach((k) => localStorage.removeItem(k));
         try { localStorage.setItem(state.chartKey, payload); } catch { }
     }
     window.dispatchEvent(new Event("tuvi-memory-updated"));
+    pushProfileToCloud(state.chartKey);
 }
 
 export function clearChartMemory(chartKey: string): void {
-    if (typeof window !== "undefined") {
-        localStorage.removeItem(chartKey);
-        window.dispatchEvent(new Event("tuvi-memory-updated"));
-    }
+    if (typeof window !== "undefined") { localStorage.removeItem(chartKey); window.dispatchEvent(new Event("tuvi-memory-updated")); }
 }

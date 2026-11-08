@@ -26,6 +26,7 @@ export default function AuthBarAndModal({ onLoadSavedChart }: { onLoadSavedChart
         try {
             const acc = modalMode === "register" ? await registerUser(displayName, username, password) : modalMode === "reset" ? await resetUserPassword(username, password) : await loginUser(username, password);
             setUser(acc);
+            if (acc.savedCharts?.length > 0) onLoadSavedChart(acc.savedCharts[0]);
             setModalMode(null);
             setPassword("");
         } catch (e: any) {

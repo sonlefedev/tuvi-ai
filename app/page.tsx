@@ -13,6 +13,8 @@ import SideQuickNav from "@/components/SideQuickNav";
 import { HoroscopeResult, CungItem } from "@/lib/types";
 import { saveChartToAccount, SavedChartEntry } from "@/lib/auth-store";
 import { setBaseTabTitle } from "@/lib/tab-notify";
+import { buildChartKey } from "@/lib/ai/tuvi-memory-store";
+import { pullProfileFromCloud } from "@/lib/ai/cloud-profile-sync";
 
 export default function Home() {
   const [loading, setLoading] = useState(false);
@@ -32,6 +34,11 @@ export default function Home() {
         setSelectedCung(data.data.cung_12[0]);
         setBaseTabTitle(data.data.thien_ban?.ho_ten, formData.namXem);
         saveChartToAccount(formData);
+        setResult(data.data);
+        setSelectedCung(data.data.cung_12[0]);
+        setBaseTabTitle(data.data.thien_ban?.ho_ten, formData.namXem);
+        saveChartToAccount(formData);
+        pullProfileFromCloud(buildChartKey(data.data.thien_ban));
       } else {
         alert(data.error || "Lỗi");
       }

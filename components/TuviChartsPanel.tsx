@@ -33,10 +33,15 @@ export default function TuviChartsPanel({ result }: { result: HoroscopeResult })
     const curLayer = LAYERS.find((l) => l.id === layerId) || LAYERS[0];
 
     useEffect(() => {
-        const saved = getSavedCharts(chartKey);
-        const found = saved[`${layerId}_default`] || null;
-        setActiveSpec(found);
-        if (found) setChartKind(found.chartType);
+        const sync = () => {
+            const saved = getSavedCharts(chartKey);
+            const found = saved[`${layerId}_default`] || null;
+            setActiveSpec(found);
+            if (found) setChartKind(found.chartType);
+        };
+        sync();
+        window.addEventListener("tuvi-memory-updated", sync);
+        return () => window.removeEventListener("tuvi-memory-updated", sync);
     }, [chartKey, layerId]);
 
     const generateChart = async (aspectText: string, customKey?: string) => {

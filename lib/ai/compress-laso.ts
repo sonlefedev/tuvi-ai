@@ -5,6 +5,11 @@ import { DIA_CHI } from "../tuvi/can-chi";
 const isFixedStar = (s: string) => !/^(L\.|ĐV\.|ĐV\s)/i.test(s);
 const isFixedBadge = (b: string) => b === "Tuần" || b === "Triệt";
 
+function extractPhi4(c: any): string {
+    const m = (c.phi_hoa_full || "").match(/\[(.*?)\]/g);
+    return m ? "Phi:" + m.map((x: string) => x.replace(/[\[\]]/g, "")).join("/") : `Phi:${c.phi_loc || ""}/${c.phi_ky || ""}`;
+}
+
 function formatFixedCung(role: string, c: any): string {
     const ten = (c.ten_cung || "").replace("<THÂN>", "[THÂN]");
     const badges = (c.badges || []).filter(isFixedBadge);
@@ -12,7 +17,7 @@ function formatFixedCung(role: string, c: any): string {
     const ct = c.chinh_tinh?.length ? c.chinh_tinh.map((s: any) => "*" + s.ten + (s.trang_thai || "")).join(",") : "VCD";
     const tot = (c.phu_tinh_tot || []).filter(isFixedStar).join(",");
     const xau = (c.phu_tinh_xau || []).filter(isFixedStar).join(",");
-    return `${meta} => ${ct} | +${tot} | -${xau} | Phi:${c.phi_loc || ""}/${c.phi_ky || ""}`;
+    return `${meta} => ${ct} | +${tot} | -${xau} | ${extractPhi4(c)}`;
 }
 
 export function compressCungCoDinh(tb: ThienBanData, cungList: CungItem[], targetChi: string): string {
@@ -20,7 +25,7 @@ export function compressCungCoDinh(tb: ThienBanData, cungList: CungItem[], targe
     if (idx === -1 || !cungList?.length) return "";
     const at = (i: number) => cungList[(i + 120) % 12];
 
-    const header = `BẢN MỆNH: ${tb?.ho_ten || "Đương số"} | ${tb?.nam_sinh} | ${tb?.am_duong} | Mệnh:${tb?.ban_menh} | Cục:${tb?.cuc_so || tb?.cuc} | ${tb?.than_cu}`;
+    const header = `BẢN MỆNH: ${tb?.ho_ten || "Đương số"} | ${tb?.nam_sinh}, ${tb?.thang_sinh}, ${tb?.ngay_sinh}, Giờ ${tb?.gio_sinh} | ${tb?.am_duong} | Mệnh:${tb?.ban_menh} | Cục:${tb?.cuc_so || tb?.cuc} | ${tb?.than_cu}`;
     const blocks = [
         formatFixedCung("1.BẢN CUNG", at(idx)),
         formatFixedCung("2.TAM HỢP 1", at(idx + 4)),
@@ -35,19 +40,25 @@ export function compressCungCoDinh(tb: ThienBanData, cungList: CungItem[], targe
 
 export function compressLaSoToText(tb: ThienBanData, cungList: CungItem[]): string {
     if (!tb || !cungList?.length) return "";
+    const dvCung = cungList.find((c) => c.dv_cung === "ĐV.MỆNH");
+    const luuCung = cungList.find((c) => c.luu_cung === "L.MỆNH");
+    const thCung = cungList.find((c) => c.badges?.includes("Tiểu Hạn"));
+    const dvRange = dvCung ? `${dvCung.can_cung}(${dvCung.dai_van}-${Number(dvCung.dai_van) + 9}t)` : "";
+
     const header = [
         "TB:" + (tb.ho_ten || "Đương số"),
-        tb.nam_sinh + "|" + tb.am_duong + "(" + (tb.am_duong_ly || "") + ")",
-        "Mệnh:" + tb.ban_menh + "|Cục:" + (tb.cuc_so || tb.cuc) + "|" + tb.menh_cuc,
-        tb.than_cu + "|Chủ:" + tb.menh_chu + "/" + tb.than_chu + "|Phi:" + tb.cung_phi,
-        "Xem:" + (tb.nam_xem || tb.nam_xem_han) + "(" + tb.tuoi_mu + "t,Hạn:" + tb.sao_han + ")",
+        `${tb.nam_sinh}, ${tb.thang_sinh}, ${tb.ngay_sinh}, Giờ ${tb.gio_sinh}`,
+        `${tb.am_duong}(${tb.am_duong_ly || ""})`,
+        `Mệnh:${tb.ban_menh}|Cục:${tb.cuc_so || tb.cuc}|${tb.menh_cuc}`,
+        `${tb.than_cu}|Chủ:${tb.menh_chu}/${tb.than_chu}|Phi:${tb.cung_phi}`,
+        `Xem:${tb.nam_xem || tb.nam_xem_han}(${tb.tuoi_mu}t,Hạn:${tb.sao_han})|ĐV_HiệnTại:${dvRange}|L.Mệnh:${luuCung?.can_cung || ""}|TiểuHạn:${thCung?.can_cung || ""}`,
     ].join("|");
 
     const lines = cungList.map((c: any) => {
         const ten = (c.ten_cung || "").replace("<THÂN>", "[THÂN]");
         const meta = [c.can_cung, ten, "ĐV" + c.dai_van, c.dv_cung, c.luu_cung, c.nguyet_han, "TS:" + c.trang_sinh, ...(c.badges || [])].filter(Boolean).join("|");
         const ct = c.chinh_tinh?.length ? c.chinh_tinh.map((s: any) => "*" + s.ten + (s.trang_thai || "")).join(",") : "VCD";
-        return `${meta} => ${ct} | +${(c.phu_tinh_tot || []).join(",")} | -${(c.phu_tinh_xau || []).join(",")} | Phi:${c.phi_loc || ""}/${c.phi_ky || ""}`;
+        return `${meta} => ${ct} | +${(c.phu_tinh_tot || []).join(",")} | -${(c.phu_tinh_xau || []).join(",")} | ${extractPhi4(c)}`;
     });
     return header + "\n" + lines.join("\n");
 }

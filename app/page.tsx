@@ -5,10 +5,12 @@ import AppIntroCard from "@/components/AppIntroCard";
 import InputForm from "@/components/InputForm";
 import LaSoBanCo from "@/components/LaSoBanCo";
 import CungDetail from "@/components/CungDetail";
+import TuviChartsPanel from "@/components/TuviChartsPanel";
 import AiLuanPanel from "@/components/AiLuanPanel";
+import SideQuickNav from "@/components/SideQuickNav";
 import { HoroscopeResult, CungItem } from "@/lib/types";
 import { setBaseTabTitle } from "@/lib/tab-notify";
-import TuviChartsPanel from "@/components/TuviChartsPanel";
+import LifeMapBookPanel from "@/components/LifeMapBookPanel";
 
 export default function Home() {
   const [loading, setLoading] = useState(false);
@@ -42,21 +44,23 @@ export default function Home() {
 
   return (
     <main className="min-h-screen bg-slate-950 text-slate-100 p-4 md:p-8 flex flex-col items-center">
-      <AppIntroCard hasResult={Boolean(result)} />
-      <InputForm onGenerate={handleGenerate} loading={loading} />
+      <SideQuickNav hasResult={Boolean(result)} cungList={result?.cung_12 || []} selectedChi={selectedCung?.chi || ""} onSelectCung={setSelectedCung} />
+
+      <div id="sec-intro" className="w-full"><AppIntroCard hasResult={Boolean(result)} /></div>
+      <div id="sec-form" className="w-full"><InputForm onGenerate={handleGenerate} loading={loading} /></div>
 
       {result && (
         <div className="w-full max-w-5xl space-y-6 mt-4">
-          <LaSoBanCo
-            cungList={result.cung_12}
-            thienBan={result.thien_ban}
-            selectedChi={selectedCung?.chi || ""}
-            onSelectCung={setSelectedCung}
-          />
+          <div id="sec-board">
+            <LaSoBanCo cungList={result.cung_12} thienBan={result.thien_ban} selectedChi={selectedCung?.chi || ""} onSelectCung={setSelectedCung} />
+          </div>
+          <div id="sec-lifemap"><LifeMapBookPanel result={result} /></div>
           {selectedCung && (
-            <CungDetail cung={selectedCung} cungList={result.cung_12} thienBan={result.thien_ban} tongQuan={result.tong_quan} namXem={namXem} />
+            <div id="sec-cung">
+              <CungDetail cung={selectedCung} cungList={result.cung_12} thienBan={result.thien_ban} tongQuan={result.tong_quan} namXem={namXem} />
+            </div>
           )}
-          <TuviChartsPanel result={result} />
+          <div id="sec-chart"><TuviChartsPanel result={result} /></div>
           <AiLuanPanel result={result} />
         </div>
       )}

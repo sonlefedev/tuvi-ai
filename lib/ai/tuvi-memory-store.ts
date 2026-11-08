@@ -1,16 +1,6 @@
 // lib/ai/tuvi-memory-store.ts
-export interface ChatTurn {
-    role: "user" | "ai";
-    text: string;
-    ts: number;
-}
-
-export interface ChartMemoryState {
-    chartKey: string;
-    compactChart: string;
-    memoryNotes: string[];
-    messages: ChatTurn[];
-}
+export interface ChatTurn { role: "user" | "ai"; text: string; ts: number; }
+export interface ChartMemoryState { chartKey: string; compactChart: string; memoryNotes: string[]; messages: ChatTurn[]; }
 
 const PREFIX = "tuvi_ai_mem_v1_";
 
@@ -23,10 +13,7 @@ export function loadChartMemory(chartKey: string, compactChart: string): ChartMe
     if (typeof window === "undefined") return { chartKey, compactChart, memoryNotes: [], messages: [] };
     try {
         const saved = localStorage.getItem(chartKey);
-        if (saved) {
-            const parsed = JSON.parse(saved);
-            return { ...parsed, compactChart };
-        }
+        if (saved) return { ...JSON.parse(saved), compactChart };
     } catch { }
     return { chartKey, compactChart, memoryNotes: [], messages: [] };
 }
@@ -36,13 +23,17 @@ export function saveChartMemory(state: ChartMemoryState): void {
     try {
         const trimmed: ChartMemoryState = {
             ...state,
-            memoryNotes: state.memoryNotes.slice(-8), // Giữ tối đa 8 ký ức chưng cất gần nhất để tiết kiệm token
+            memoryNotes: [...new Set(state.memoryNotes)].slice(-10), // Lọc trùng & giữ tối đa 10 ký ức cốt lõi
             messages: state.messages.slice(-20),
         };
         localStorage.setItem(state.chartKey, JSON.stringify(trimmed));
+        window.dispatchEvent(new Event("tuvi-memory-updated"));
     } catch { }
 }
 
 export function clearChartMemory(chartKey: string): void {
-    if (typeof window !== "undefined") localStorage.removeItem(chartKey);
+    if (typeof window !== "undefined") {
+        localStorage.removeItem(chartKey);
+        window.dispatchEvent(new Event("tuvi-memory-updated"));
+    }
 }

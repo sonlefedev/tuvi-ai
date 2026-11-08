@@ -26,35 +26,38 @@ export default function AiLuanPanel({ result }: { result: HoroscopeResult }) {
     useEffect(() => {
         const compact = compressLaSoToText(result.thien_ban, result.cung_12);
         const key = buildChartKey(result.thien_ban);
-        setStore(loadChartMemory(key, compact));
+        const sync = () => setStore(loadChartMemory(key, compact));
+        sync();
+        window.addEventListener("tuvi-memory-updated", sync);
+        return () => window.removeEventListener("tuvi-memory-updated", sync);
     }, [result]);
 
     const askAi = async (q: string) => {
         const cleanQ = q.trim();
         if (!cleanQ || loading || !store) return;
+        const latest = loadChartMemory(store.chartKey, store.compactChart);
         setLoading(true);
         setQuestion("");
         setStreamingText("");
-        setSteps(["Đang chuẩn bị câu hỏi & ngữ cảnh lá số..."]);
+        setSteps([`Đang nạp lá số & ${latest.memoryNotes.length} ký ức từ các cung đã luận...`]);
         notifyTabStatus("⏳ Trợ lý AI đang trả lời...");
 
-        const nextMessages = [...store.messages, { role: "user" as const, text: cleanQ, ts: Date.now() }];
-        const optimistic = { ...store, messages: nextMessages };
-        setStore(optimistic);
+        const nextMessages = [...latest.messages, { role: "user" as const, text: cleanQ, ts: Date.now() }];
+        setStore({ ...latest, messages: nextMessages });
 
         try {
             const data = await streamAiEndpoint(
                 "/api/ai-luan",
-                { compactChart: store.compactChart, memoryNotes: store.memoryNotes, question: cleanQ },
+                { compactChart: latest.compactChart, memoryNotes: latest.memoryNotes, question: cleanQ },
                 (s) => setSteps((prev) => [...prev, s]),
                 (partial) => setStreamingText(partial)
             );
 
             if (data?.answer) {
                 const updated: ChartMemoryState = {
-                    ...optimistic,
+                    ...latest,
                     messages: [...nextMessages, { role: "ai", text: data.answer, ts: Date.now() }],
-                    memoryNotes: data.memoryNote ? [...store.memoryNotes, data.memoryNote] : store.memoryNotes,
+                    memoryNotes: data.memoryNote ? [...latest.memoryNotes, data.memoryNote] : latest.memoryNotes,
                 };
                 setStore(updated);
                 saveChartMemory(updated);
@@ -89,8 +92,8 @@ export default function AiLuanPanel({ result }: { result: HoroscopeResult }) {
 
             {store.memoryNotes.length > 0 && (
                 <div className="p-2.5 rounded-xl bg-amber-500/5 border border-amber-500/20 text-[11px] text-amber-200/90 space-y-1">
-                    <div className="font-bold text-amber-400 flex items-center gap-1"><BrainCircuit className="w-3.5 h-3.5" /> Bối cảnh AI đang ghi nhớ về đương số:</div>
-                    {store.memoryNotes.slice(-3).map((m, i) => <div key={i}>• {m}</div>)}
+                    <div className="font-bold text-amber-400 flex items-center gap-1"><BrainCircuit className="w-3.5 h-3.5" /> Bối cảnh AI đang ghi nhớ (từ các cung & hội thoại):</div>
+                    {store.memoryNotes.slice(-4).map((m, i) => <div key={i}>• {m}</div>)}
                 </div>
             )}
 

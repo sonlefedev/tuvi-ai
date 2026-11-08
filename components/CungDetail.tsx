@@ -7,6 +7,7 @@ import { phanTichCung } from "@/lib/luan-giai-cung";
 import { compressCungCoDinh, compressLaSoToText } from "@/lib/ai/compress-laso";
 import { buildChartKey } from "@/lib/ai/tuvi-memory-store";
 import { CungAiReading, getCachedCungAi, saveCachedCungAi } from "@/lib/ai/cung-ai-store";
+import { pullProfileFromCloud } from "@/lib/ai/cloud-profile-sync";
 import { streamAiEndpoint } from "@/lib/ai/stream-client";
 import { notifyTabStatus } from "@/lib/tab-notify";
 import AiProgressLog from "./AiProgressLog";
@@ -30,8 +31,20 @@ export default function CungDetail({ cung, cungList = [], thienBan, namXem }: Pr
     const fixedContext = thienBan ? compressCungCoDinh(thienBan, cungList, cung.chi) : "";
 
     useEffect(() => {
-        setAiReading(chartKey ? getCachedCungAi(chartKey, cung.chi) : null);
+        const syncLocal = () => setAiReading(chartKey ? getCachedCungAi(chartKey, cung.chi) : null);
+        syncLocal();
         setSteps([]);
+        if (chartKey) pullProfileFromCloud(chartKey);
+
+        const onFocus = () => { if (chartKey && !document.hidden) pullProfileFromCloud(chartKey); };
+        window.addEventListener("tuvi-memory-updated", syncLocal);
+        window.addEventListener("focus", onFocus);
+        document.addEventListener("visibilitychange", onFocus);
+        return () => {
+            window.removeEventListener("tuvi-memory-updated", syncLocal);
+            window.removeEventListener("focus", onFocus);
+            document.removeEventListener("visibilitychange", onFocus);
+        };
     }, [chartKey, cung.chi]);
 
     const handleAiRead = async () => {
@@ -40,12 +53,7 @@ export default function CungDetail({ cung, cungList = [], thienBan, namXem }: Pr
         setSteps(["Lọc sao cố định lục diện của cung " + cung.ten_cung + "..."]);
         notifyTabStatus(`⏳ AI đang luận cung ${cung.ten_cung}...`);
         try {
-            const data = await streamAiEndpoint(
-                "/api/ai-cung",
-                { fixedContext, cungName: cung.ten_cung, cungChi: cung.can_cung || cung.chi },
-                (s) => setSteps((prev) => [...prev, s]),
-                (chunkInfo) => setSteps((prev) => [...prev.slice(0, -1), chunkInfo])
-            );
+            const data = await streamAiEndpoint("/api/ai-cung", { fixedContext, cungName: cung.ten_cung, cungChi: cung.can_cung || cung.chi }, (s) => setSteps((p) => [...p, s]), (c) => setSteps((p) => [...p.slice(0, -1), c]));
             if (data?.reading) {
                 setAiReading(data.reading);
                 saveCachedCungAi(chartKey, cung.chi, compressLaSoToText(thienBan, cungList), data.reading, data.memoryNote);
@@ -66,7 +74,7 @@ export default function CungDetail({ cung, cungList = [], thienBan, namXem }: Pr
                     <h4 className="font-black text-lg text-amber-300 uppercase">Cung {cung.ten_cung} ({cung.can_cung || cung.chi})</h4>
                     <p className="text-[11px] text-slate-400">Tràng Sinh: <b className="text-slate-200">{cung.trang_sinh}</b> • Đại vận: <b className="text-cyan-300">{cung.dai_van} tuổi ({cung.dv_cung})</b> • Lưu niên {namXem}: <b className="text-pink-300">{cung.luu_cung} ({cung.nguyet_han})</b></p>
                 </div>
-                <button type="button" onClick={handleAiRead} disabled={loading || !fixedContext} className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-bold text-xs shadow-lg disabled:opacity-50 disabled:pointer-events-none cursor-pointer">
+                <button type="button" onClick={handleAiRead} disabled={loading || !fixedContext} className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-bold text-xs shadow-lg disabled:opacity-50 cursor-pointer">
                     {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : aiReading ? <RefreshCw className="w-3.5 h-3.5" /> : <Sparkles className="w-3.5 h-3.5" />}
                     {loading ? "AI đang luận sâu..." : aiReading ? "AI Luận lại (~4.500 chữ)" : "AI Luận Chuyên Sâu (~4.500 chữ)"}
                 </button>

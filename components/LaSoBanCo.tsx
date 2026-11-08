@@ -1,13 +1,13 @@
 // @ts-nocheck
 // components/LaSoBanCo.tsx
 "use client";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useRef, useState } from "react";
 import { Download, Loader2 } from "lucide-react";
 import CungCell from "./CungCell";
 import ThienBanCenter from "./ThienBanCenter";
 import LaSoExportSheet from "./LaSoExportSheet";
 import { TAM_HOP_MAP, XUNG_CHIEU_MAP } from "@/lib/tuong-tac";
-import { detectDeviceSpec, DeviceExportSpec, downloadLaSoPng } from "@/lib/export-image";
+import { downloadLaSoPng } from "@/lib/export-image";
 
 const GRID_POS = [
     "row-start-4 col-start-3", "row-start-4 col-start-2", "row-start-4 col-start-1", "row-start-3 col-start-1",
@@ -18,15 +18,7 @@ const GRID_POS = [
 export default function LaSoBanCo({ cungList, thienBan, selectedChi, onSelectCung, laSo }: any) {
     const [hoveredChi, setHoveredChi] = useState<string | null>(null);
     const [exporting, setExporting] = useState(false);
-    const [spec, setSpec] = useState<DeviceExportSpec>({ device: "desktop", width: 1280, height: 860, label: "Máy tính" });
     const exportRef = useRef<HTMLDivElement>(null);
-
-    useEffect(() => {
-        const update = () => setSpec(detectDeviceSpec());
-        update();
-        window.addEventListener("resize", update);
-        return () => window.removeEventListener("resize", update);
-    }, []);
 
     const list = cungList || laSo?.cung_12 || laSo?.cung || [];
     const tb = thienBan || laSo?.thien_ban || laSo?.thienBan;
@@ -60,7 +52,7 @@ export default function LaSoBanCo({ cungList, thienBan, selectedChi, onSelectCun
                     className="flex items-center gap-2 px-4 py-2 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 active:scale-95 text-amber-300 border border-amber-500/40 text-xs font-bold transition disabled:opacity-50 disabled:pointer-events-none cursor-pointer"
                 >
                     {exporting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
-                    {exporting ? `Đang xuất ảnh (${spec.label})...` : `Tải ảnh lá số (${spec.label} HD)`}
+                    {exporting ? "Đang xuất ảnh 4K..." : "Tải ảnh lá số (4K HD)"}
                 </button>
             </div>
 
@@ -77,7 +69,7 @@ export default function LaSoBanCo({ cungList, thienBan, selectedChi, onSelectCun
                 </div>
             </div>
 
-            <LaSoExportSheet exportRef={exportRef} list={list} tb={tb} spec={spec} />
+            <LaSoExportSheet exportRef={exportRef} list={list} tb={tb} />
         </div>
     );
 }

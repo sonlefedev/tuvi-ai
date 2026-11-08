@@ -31,6 +31,10 @@ function getAllUsers(): Record<string, UserAccount> {
     try { return JSON.parse(localStorage.getItem(USERS_KEY) || "{}"); } catch { return {}; }
 }
 
+export function listLocalUsers(): UserAccount[] {
+    return Object.values(getAllUsers());
+}
+
 export function getCurrentUser(): UserAccount | null {
     if (typeof window === "undefined") return null;
     try {
@@ -61,6 +65,18 @@ export async function loginUser(username: string, password: string): Promise<Use
     localStorage.setItem(SESSION_KEY, id);
     window.dispatchEvent(new Event("tuvi-auth-changed"));
     return user;
+}
+
+export async function resetUserPassword(username: string, newPassword: string): Promise<UserAccount> {
+    const id = username.trim().toLowerCase();
+    const users = getAllUsers();
+    if (!users[id]) throw new Error("Không tìm thấy tên đăng nhập này trên máy");
+    if (newPassword.length < 4) throw new Error("Mật khẩu mới tối thiểu 4 ký tự");
+    users[id] = { ...users[id], passHash: await hashPass(newPassword) };
+    localStorage.setItem(USERS_KEY, JSON.stringify(users));
+    localStorage.setItem(SESSION_KEY, id);
+    window.dispatchEvent(new Event("tuvi-auth-changed"));
+    return users[id];
 }
 
 export function logoutUser(): void {

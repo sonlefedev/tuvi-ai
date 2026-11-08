@@ -18,10 +18,10 @@ export function tinhSaoLuu(namXem: number, namSinh: number, isNam: boolean = tru
 
     const locTonMap = [2, 3, 5, 6, 5, 6, 8, 9, 11, 0], locTon = locTonMap[cIdx];
     const khoiMap = [1, 0, 11, 11, 1, 0, 2, 2, 3, 3], vietMap = [7, 8, 9, 9, 7, 8, 6, 6, 5, 5];
-    const xuongMap = [8, 9, 8, 9, 8, 9, 11, 0, 2, 3], khucMap = [10, 5, 10, 5, 10, 5, 1, 2, 4, 5];
+    const xuongMap = [5, 6, 8, 9, 8, 9, 11, 0, 2, 3], khucMap = [7, 8, 10, 5, 10, 5, 1, 2, 4, 5];
     const maMap = [8, 11, 8, 5, 2, 11, 8, 5, 2, 11, 8, 5], daoHoaMap = [9, 6, 3, 0, 9, 6, 3, 0, 9, 6, 3, 0];
 
-    // 1. Sao Lưu Niên toàn diện theo Can & Chi năm xem
+    // 1. Sao Lưu Niên theo Can & Chi năm xem
     map[DIA_CHI[locTon]].tot.push("L.Lộc Tồn(V)");
     map[DIA_CHI[(locTon + 1) % 12]].xau.push("L.K Dượng(Đ)");
     map[DIA_CHI[(locTon + 11) % 12]].xau.push("L.Đà La(H)");
@@ -37,7 +37,6 @@ export function tinhSaoLuu(namXem: number, namSinh: number, isNam: boolean = tru
     map[DIA_CHI[maMap[chIdx]]].tot.push("L.Thiên Mã(V)");
     map[DIA_CHI[daoHoaMap[chIdx]]].tot.push("L.Đào Hoa");
 
-    // Lưu Hồng Loan, Thiên Hỷ, Kiếp Sát, Song Hao, Thiên Hình, Lưu Tứ Đức
     const lHongLoan = (3 - chIdx + 120) % 12, lKiepsatMap = [5, 2, 11, 8, 5, 2, 11, 8, 5, 2, 11, 8];
     map[DIA_CHI[lHongLoan]].tot.push("L.Hồng Loan"); map[DIA_CHI[(lHongLoan + 6) % 12]].tot.push("L.Thiên Hỷ");
     map[DIA_CHI[lKiepsatMap[chIdx]]].xau.push("L.Kiếp Sát");
@@ -46,7 +45,7 @@ export function tinhSaoLuu(namXem: number, namSinh: number, isNam: boolean = tru
     map[DIA_CHI[(9 + chIdx) % 12]].tot.push("L.Thiên Đức"); map[DIA_CHI[(5 + chIdx) % 12]].tot.push("L.Nguyệt Đức");
     map[DIA_CHI[(7 + chIdx) % 12]].tot.push("L.Long Đức"); map[DIA_CHI[(9 + chIdx) % 12]].tot.push("L.Phúc Đức");
 
-    // 2. Đại vận & Lưu Đại Vận
+    // 2. Đại vận & Lưu Đại Vận (Lộc Kình Đà, Khôi Việt, Xương Khúc, Mã, Tuế Tang Hổ Khốc Hư)
     const daiVanMap: Record<string, number> = {};
     for (let i = 0; i < 12; i++) daiVanMap[DIA_CHI[(vtMenh + i * step + 120) % 12]] = cucNum + i * 10;
 
@@ -58,6 +57,9 @@ export function tinhSaoLuu(namXem: number, namSinh: number, isNam: boolean = tru
     map[DIA_CHI[(dvLoc + 11) % 12]].xau.push("ĐV.Đà La(H)"); map[DIA_CHI[khoiMap[dvCanIdx]]].tot.push("ĐV.Thiên Khôi");
     map[DIA_CHI[vietMap[dvCanIdx]]].tot.push("ĐV.Thiên Việt"); map[DIA_CHI[xuongMap[dvCanIdx]]].tot.push("ĐV.Xương(H)");
     map[DIA_CHI[khucMap[dvCanIdx]]].tot.push("ĐV.Khúc(Đ)"); map[DIA_CHI[maMap[dvChiIdx]]].tot.push("ĐV.T Mã(V)");
+    map[DIA_CHI[dvChiIdx]].xau.push("ĐV.Thái Tuế"); map[DIA_CHI[(dvChiIdx + 2) % 12]].xau.push("ĐV.Tang Môn");
+    map[DIA_CHI[(dvChiIdx + 8) % 12]].xau.push("ĐV.Bạch Hổ"); map[DIA_CHI[(6 - dvChiIdx + 120) % 12]].xau.push("ĐV.Khốc");
+    map[DIA_CHI[(6 + dvChiIdx) % 12]].xau.push("ĐV.Hư");
 
     const luuCungMap: Record<string, string> = {}, dvCungMap: Record<string, string> = {};
     for (let i = 0; i < 12; i++) {
@@ -65,12 +67,11 @@ export function tinhSaoLuu(namXem: number, namSinh: number, isNam: boolean = tru
         dvCungMap[DIA_CHI[(dvChiIdx + i) % 12]] = `ĐV.${CUNG_NAMES[i]}`;
     }
 
-    // Đẩu Quân chính tông & Nguyệt Hạn 12 tháng
+    // 3. Đẩu Quân Nguyệt Hạn & Cung Tiểu Hạn (Nam thuận, Nữ nghịch theo Tam hợp tuổi chSIdx % 4)
     const dauQuan = (chIdx - (thangSinh - 1) + gioChi + 120) % 12, nguyetHanMap: Record<string, string> = {};
     for (let m = 1; m <= 12; m++) nguyetHanMap[DIA_CHI[(dauQuan + m - 1) % 12]] = `T ${m}`;
 
-    // Cung Tiểu Hạn của năm xem
-    const khoiTieuHan = [10, 7, 4, 1][Math.floor(chSIdx / 3) % 4] || 10;
+    const khoiTieuHan = [10, 7, 4, 1][chSIdx % 4];
     const tieuHanIdx = (khoiTieuHan + (tuoi - 1) * (isNam ? 1 : -1) + 120) % 12;
 
     return { canChiNamXem: `${CAN_LIST[cIdx]} ${DIA_CHI[chIdx]}`, saoLuuMap: map, daiVanMap, luuCungMap, dvCungMap, nguyetHanMap, dvCan: CAN_LIST[dvCanIdx], canIdx: cIdx, chiIdx: chIdx, tieuHanChi: DIA_CHI[tieuHanIdx] };
@@ -81,8 +82,4 @@ export function parseHour(g: any): number {
     const s = String(g || "").toLowerCase();
     const m: [string, number][] = [["tý", 0], ["ti", 0], ["sửu", 2], ["dần", 4], ["mão", 6], ["thìn", 8], ["tỵ", 10], ["ngọ", 12], ["mùi", 14], ["thân", 16], ["dậu", 18], ["tuất", 20], ["hợi", 22]];
     return m.find(([k]) => s.includes(k))?.[1] ?? 12;
-}
-
-export function toTitleCase(s: string): string {
-    return s.split(" ").map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(" ");
 }

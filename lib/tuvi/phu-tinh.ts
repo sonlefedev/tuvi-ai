@@ -5,7 +5,7 @@ export function anDayDuPhuTinh(canNam: number, chiNam: number, thangAm: number, 
     const tot: Record<string, string[]> = {}, xau: Record<string, string[]> = {};
     DIA_CHI.forEach(c => { tot[c] = []; xau[c] = []; });
 
-    // 1. Lục Cát & Lục Sát (Địa Không Dần, Địa Kiếp Thân cho giờ Dậu)
+    // 1. Lục Cát & Lục Sát
     const taPhu = (4 + thangAm - 1) % 12, huuBat = (10 - thangAm + 1 + 120) % 12;
     const vanXuong = (10 - gioChi + 120) % 12, vanKhuc = (4 + gioChi) % 12;
     tot[DIA_CHI[taPhu]].push("Tả Phù"); tot[DIA_CHI[huuBat]].push("Hữu Bật");
@@ -18,7 +18,8 @@ export function anDayDuPhuTinh(canNam: number, chiNam: number, thangAm: number, 
     xau[DIA_CHI[(lPos + 1) % 12]].push("Kình Dương"); xau[DIA_CHI[(lPos - 1 + 12) % 12]].push("Đà La");
     xau[DIA_CHI[(11 - gioChi + 120) % 12]].push("Địa Không"); xau[DIA_CHI[(11 + gioChi) % 12]].push("Địa Kiếp");
 
-    const hoaChi = [8, 1, 2, 7][Math.floor(chiNam / 3) % 4] || 2, linhChi = [10, 3, 10, 10][Math.floor(chiNam / 3) % 4] || 10;
+    // Tam hợp tuổi (chiNam % 4): Thân Tý Thìn(0), Tỵ Dậu Sửu(1), Dần Ngọ Tuất(2), Hợi Mão Mùi(3)
+    const hoaChi = [2, 3, 1, 9][chiNam % 4], linhChi = [10, 10, 3, 10][chiNam % 4];
     xau[DIA_CHI[isDuongNam ? (hoaChi + gioChi) % 12 : (hoaChi - gioChi + 120) % 12]].push("Hỏa Tinh");
     xau[DIA_CHI[isDuongNam ? (linhChi - gioChi + 120) % 12 : (linhChi + gioChi) % 12]].push("Linh Tinh");
 
@@ -37,7 +38,7 @@ export function anDayDuPhuTinh(canNam: number, chiNam: number, thangAm: number, 
     const trangSinhRes: Record<string, string> = {};
     tsNames.forEach((s, i) => { trangSinhRes[DIA_CHI[(tsStart + i * bsStep + 120) % 12]] = s; });
 
-    // 4. Các sao theo Chi & Can năm
+    // 4. Các sao theo Chi năm
     const maMap = [8, 11, 8, 5, 2, 11, 8, 5, 2, 11, 8, 5], daoHoaMap = [9, 6, 3, 0, 9, 6, 3, 0, 9, 6, 3, 0], hoaCaiMap = [4, 1, 10, 7, 4, 1, 10, 7, 4, 1, 10, 7];
     tot[DIA_CHI[maMap[chiNam]]].push("Thiên Mã"); tot[DIA_CHI[daoHoaMap[chiNam]]].push("Đào Hoa"); tot[DIA_CHI[hoaCaiMap[chiNam]]].push("Hoa Cái");
     tot[DIA_CHI[(3 - chiNam + 120) % 12]].push("Hồng Loan"); tot[DIA_CHI[(9 - chiNam + 120) % 12]].push("Thiên Hỷ");
@@ -46,25 +47,20 @@ export function anDayDuPhuTinh(canNam: number, chiNam: number, thangAm: number, 
     xau[DIA_CHI[coThan]].push("Cô Thần"); xau[DIA_CHI[quaTu]].push("Quả Tú");
     xau[DIA_CHI[[5, 2, 11, 8, 5, 2, 11, 8, 5, 2, 11, 8][chiNam]]].push("Kiếp Sát");
     xau[DIA_CHI[[5, 1, 9, 5, 1, 9, 5, 1, 9, 5, 1, 9][chiNam]]].push("Phá Toái");
-
-    // Long Phượng, Tứ Đức
     tot[DIA_CHI[(4 + chiNam) % 12]].push("Long Trì");
-    tot[DIA_CHI[(10 - chiNam + 120) % 12]].push("Phượng Các");
-    tot[DIA_CHI[(10 - chiNam + 120) % 12]].push("Giải Thần");
-    tot[DIA_CHI[(9 + chiNam) % 12]].push("Thiên Đức");
-    tot[DIA_CHI[(5 + chiNam) % 12]].push("Nguyệt Đức");
+    tot[DIA_CHI[(10 - chiNam + 120) % 12]].push("Phượng Các"); tot[DIA_CHI[(10 - chiNam + 120) % 12]].push("Giải Thần");
+    tot[DIA_CHI[(9 + chiNam) % 12]].push("Thiên Đức"); tot[DIA_CHI[(5 + chiNam) % 12]].push("Nguyệt Đức");
 
     // 5. Các sao theo Can, Tháng, Giờ & Cố Định
-    tot[DIA_CHI[(lPos + 8) % 12]].push("Quốc Ấn"); tot[DIA_CHI[(lPos + 5) % 12]].push("Đường Phù");
+    tot[DIA_CHI[(lPos + 8) % 12]].push("Quốc Ấn"); tot[DIA_CHI[(lPos + 7) % 12]].push("Đường Phù");
     const thienQuan = [7, 4, 5, 2, 3, 9, 11, 9, 10, 6][canNam], thienPhuc = [9, 8, 0, 11, 3, 2, 6, 5, 6, 5][canNam];
     tot[DIA_CHI[thienQuan]].push("Thiên Quan"); tot[DIA_CHI[thienPhuc]].push("Thiên Phúc");
-    tot[DIA_CHI[[2, 3, 6, 7, 4, 5, 8, 9, 11, 10][canNam]]].push("Lưu Hà");
+    xau[DIA_CHI[[9, 10, 7, 8, 5, 6, 4, 3, 11, 2][canNam]]].push("Lưu Hà");
     tot[DIA_CHI[[5, 6, 0, 5, 6, 8, 2, 6, 9, 10][canNam]]].push("Thiên Trù");
 
     xau[DIA_CHI[(9 + thangAm - 1) % 12]].push("Thiên Hình"); xau[DIA_CHI[(1 + thangAm - 1) % 12]].push("Thiên Riêu");
     tot[DIA_CHI[(1 + thangAm - 1) % 12]].push("Thiên Y");
-    tot[DIA_CHI[(8 + thangAm - 1) % 12]].push("Thiên Giải");
-    tot[DIA_CHI[(7 + thangAm - 1) % 12]].push("Địa Giải");
+    tot[DIA_CHI[(8 + thangAm - 1) % 12]].push("Thiên Giải"); tot[DIA_CHI[(7 + thangAm - 1) % 12]].push("Địa Giải");
     tot[DIA_CHI[(vanKhuc + 2) % 12]].push("Thai Phụ"); tot[DIA_CHI[(vanKhuc - 2 + 12) % 12]].push("Phong Cáo");
 
     const tamThai = (taPhu + ngayAm - 1) % 12, batToa = (huuBat - ngayAm + 1 + 120) % 12;
@@ -72,11 +68,9 @@ export function anDayDuPhuTinh(canNam: number, chiNam: number, thangAm: number, 
     const anQuang = (vanXuong + ngayAm - 2 + 120) % 12, thienQuy = (vanKhuc - ngayAm + 2 + 120) % 12;
     tot[DIA_CHI[anQuang]].push("Ân Quang"); tot[DIA_CHI[thienQuy]].push("Thiên Quý");
 
-    tot[DIA_CHI[(vtMenh + chiNam) % 12]].push("Thiên Tài");
-    tot[DIA_CHI[(vtThan + chiNam) % 12]].push("Thiên Thọ");
+    tot[DIA_CHI[(vtMenh + chiNam) % 12]].push("Thiên Tài"); tot[DIA_CHI[(vtThan + chiNam) % 12]].push("Thiên Thọ");
     xau[DIA_CHI[4]].push("Thiên La"); xau[DIA_CHI[10]].push("Địa Võng");
-    xau[DIA_CHI[(vtMenh + 5) % 12]].push("Thiên Thương");
-    xau[DIA_CHI[(vtMenh + 7) % 12]].push("Thiên Sứ");
+    xau[DIA_CHI[(vtMenh + 5) % 12]].push("Thiên Thương"); xau[DIA_CHI[(vtMenh + 7) % 12]].push("Thiên Sứ");
 
     return { tot, xau, trangSinhRes };
 }

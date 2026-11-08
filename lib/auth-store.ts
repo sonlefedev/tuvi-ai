@@ -1,22 +1,6 @@
 // lib/auth-store.ts
-export interface SavedChartEntry {
-    id: string;
-    hoTen: string;
-    gioiTinh: string;
-    ngay: number;
-    thang: number;
-    nam: number;
-    gio: string;
-    namXem: number;
-}
-
-export interface UserAccount {
-    id: string;
-    displayName: string;
-    username: string;
-    passHash: string;
-    savedCharts: SavedChartEntry[];
-}
+export interface SavedChartEntry { id: string; hoTen: string; gioiTinh: string; ngay: number; thang: number; nam: number; gio: string; namXem: number; }
+export interface UserAccount { id: string; displayName: string; username: string; passHash: string; savedCharts: SavedChartEntry[]; }
 
 const USERS_KEY = "tuvi_users_db_v1";
 const SESSION_KEY = "tuvi_active_user_v1";
@@ -31,67 +15,55 @@ function getAllUsers(): Record<string, UserAccount> {
     try { return JSON.parse(localStorage.getItem(USERS_KEY) || "{}"); } catch { return {}; }
 }
 
-export function listLocalUsers(): UserAccount[] {
-    return Object.values(getAllUsers());
+function cacheLocalUser(u: UserAccount) {
+    const users = getAllUsers();
+    users[u.id] = u;
+    localStorage.setItem(USERS_KEY, JSON.stringify(users));
+    localStorage.setItem(SESSION_KEY, u.id);
+    window.dispatchEvent(new Event("tuvi-auth-changed"));
 }
 
+async function callAuthApi(payload: any): Promise<UserAccount> {
+    const res = await fetch("/api/auth", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+    const data = await res.json();
+    if (!res.ok || !data.success) throw new Error(data.error || "Lỗi đồng bộ tài khoản Cloud");
+    cacheLocalUser(data.user);
+    return data.user;
+}
+
+export function listLocalUsers(): UserAccount[] { return Object.values(getAllUsers()); }
 export function getCurrentUser(): UserAccount | null {
     if (typeof window === "undefined") return null;
-    try {
-        const id = localStorage.getItem(SESSION_KEY);
-        return id ? getAllUsers()[id] || null : null;
-    } catch { return null; }
+    try { const id = localStorage.getItem(SESSION_KEY); return id ? getAllUsers()[id] || null : null; } catch { return null; }
 }
 
 export async function registerUser(displayName: string, username: string, password: string): Promise<UserAccount> {
     const id = username.trim().toLowerCase().replace(/[^a-z0-9_@.-]/g, "");
     if (id.length < 3) throw new Error("Tên đăng nhập tối thiểu 3 ký tự");
     if (password.length < 4) throw new Error("Mật khẩu tối thiểu 4 ký tự");
-    const users = getAllUsers();
-    if (users[id]) throw new Error("Tài khoản này đã tồn tại");
-
-    const user: UserAccount = { id, displayName: displayName.trim() || id, username: id, passHash: await hashPass(password), savedCharts: [] };
-    users[id] = user;
-    localStorage.setItem(USERS_KEY, JSON.stringify(users));
-    localStorage.setItem(SESSION_KEY, id);
-    window.dispatchEvent(new Event("tuvi-auth-changed"));
-    return user;
+    return await callAuthApi({ action: "register", id, displayName: displayName.trim() || id, passHash: await hashPass(password) });
 }
 
 export async function loginUser(username: string, password: string): Promise<UserAccount> {
     const id = username.trim().toLowerCase();
-    const user = getAllUsers()[id];
-    if (!user || user.passHash !== (await hashPass(password))) throw new Error("Sai tên đăng nhập hoặc mật khẩu");
-    localStorage.setItem(SESSION_KEY, id);
-    window.dispatchEvent(new Event("tuvi-auth-changed"));
-    return user;
+    return await callAuthApi({ action: "login", id, passHash: await hashPass(password) });
 }
 
 export async function resetUserPassword(username: string, newPassword: string): Promise<UserAccount> {
     const id = username.trim().toLowerCase();
-    const users = getAllUsers();
-    if (!users[id]) throw new Error("Không tìm thấy tên đăng nhập này trên máy");
     if (newPassword.length < 4) throw new Error("Mật khẩu mới tối thiểu 4 ký tự");
-    users[id] = { ...users[id], passHash: await hashPass(newPassword) };
-    localStorage.setItem(USERS_KEY, JSON.stringify(users));
-    localStorage.setItem(SESSION_KEY, id);
-    window.dispatchEvent(new Event("tuvi-auth-changed"));
-    return users[id];
+    return await callAuthApi({ action: "reset", id, passHash: await hashPass(newPassword) });
 }
 
 export function logoutUser(): void {
-    if (typeof window === "undefined") return;
-    localStorage.removeItem(SESSION_KEY);
-    window.dispatchEvent(new Event("tuvi-auth-changed"));
+    if (typeof window !== "undefined") { localStorage.removeItem(SESSION_KEY); window.dispatchEvent(new Event("tuvi-auth-changed")); }
 }
 
-export function saveChartToAccount(entry: Omit<SavedChartEntry, "id">): void {
+export async function saveChartToAccount(entry: Omit<SavedChartEntry, "id">): Promise<void> {
     const user = getCurrentUser();
     if (!user) return;
-    const users = getAllUsers();
     const chartId = `${entry.hoTen}_${entry.ngay}_${entry.thang}_${entry.nam}_${entry.gio}`.toLowerCase();
-    const filtered = (user.savedCharts || []).filter((c) => c.id !== chartId);
-    users[user.id] = { ...user, savedCharts: [{ ...entry, id: chartId }, ...filtered].slice(0, 15) };
-    localStorage.setItem(USERS_KEY, JSON.stringify(users));
-    window.dispatchEvent(new Event("tuvi-auth-changed"));
+    const nextCharts = [{ ...entry, id: chartId }, ...(user.savedCharts || []).filter((c) => c.id !== chartId)].slice(0, 15);
+    cacheLocalUser({ ...user, savedCharts: nextCharts });
+    await callAuthApi({ action: "sync_charts", id: user.id, savedCharts: nextCharts }).catch(() => { });
 }

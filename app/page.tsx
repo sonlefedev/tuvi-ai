@@ -8,6 +8,7 @@ import CungDetail from "@/components/CungDetail";
 import AiLuanPanel from "@/components/AiLuanPanel";
 import { HoroscopeResult, CungItem } from "@/lib/types";
 import { setBaseTabTitle } from "@/lib/tab-notify";
+import TuviChartsPanel from "@/components/TuviChartsPanel";
 
 export default function Home() {
   const [loading, setLoading] = useState(false);
@@ -55,6 +56,7 @@ export default function Home() {
           {selectedCung && (
             <CungDetail cung={selectedCung} cungList={result.cung_12} thienBan={result.thien_ban} tongQuan={result.tong_quan} namXem={namXem} />
           )}
+          <TuviChartsPanel result={result} />
           <AiLuanPanel result={result} />
         </div>
       )}

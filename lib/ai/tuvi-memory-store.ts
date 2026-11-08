@@ -1,4 +1,6 @@
 // lib/ai/tuvi-memory-store.ts
+import { getCurrentUser } from "../auth-store";
+
 export interface ChatTurn { role: "user" | "ai"; text: string; ts: number; }
 export interface CungAiReading {
     chinhTinhBanCung: string;
@@ -18,8 +20,9 @@ export interface ChartMemoryState {
 const PREFIX = "tuvi_ai_profile_v2_";
 
 export function buildChartKey(tb: any): string {
+    const uid = getCurrentUser()?.id || "guest";
     const raw = [tb?.ho_ten, tb?.nam_sinh, tb?.thang_sinh, tb?.ngay_sinh, tb?.gio_sinh, tb?.gioi_tinh].join("_");
-    return PREFIX + raw.toLowerCase().replace(/[^a-z0-9]/g, "");
+    return `${PREFIX}${uid}_${raw.toLowerCase().replace(/[^a-z0-9]/g, "")}`;
 }
 
 export function loadChartMemory(chartKey: string, compactChart: string): ChartMemoryState {

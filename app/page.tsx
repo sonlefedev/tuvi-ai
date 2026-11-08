@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import AuthBarAndModal from "@/components/AuthBarAndModal";
 import AppIntroCard from "@/components/AppIntroCard";
 import InputForm from "@/components/InputForm";
 import LaSoBanCo from "@/components/LaSoBanCo";
@@ -10,6 +11,7 @@ import TuviChartsPanel from "@/components/TuviChartsPanel";
 import AiLuanPanel from "@/components/AiLuanPanel";
 import SideQuickNav from "@/components/SideQuickNav";
 import { HoroscopeResult, CungItem } from "@/lib/types";
+import { saveChartToAccount, SavedChartEntry } from "@/lib/auth-store";
 import { setBaseTabTitle } from "@/lib/tab-notify";
 
 export default function Home() {
@@ -29,6 +31,7 @@ export default function Home() {
         setResult(data.data);
         setSelectedCung(data.data.cung_12[0]);
         setBaseTabTitle(data.data.thien_ban?.ho_ten, formData.namXem);
+        saveChartToAccount(formData);
       } else {
         alert(data.error || "Lỗi");
       }
@@ -55,7 +58,9 @@ export default function Home() {
         </button>
       )}
 
+      <AuthBarAndModal onLoadSavedChart={(c: SavedChartEntry) => handleGenerate(c)} />
       <SideQuickNav hasResult={Boolean(result)} cungList={result?.cung_12 || []} selectedChi={selectedCung?.chi || ""} onSelectCung={handleSelectCung} />
+
       <div id="sec-intro" className="w-full"><AppIntroCard hasResult={Boolean(result)} /></div>
       <div id="sec-form" className="w-full"><InputForm onGenerate={handleGenerate} loading={loading} /></div>
 

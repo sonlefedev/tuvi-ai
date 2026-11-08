@@ -28,15 +28,15 @@ export async function POST(req: NextRequest) {
                     LAYER_RULES[layerId] || LAYER_RULES.codinh,
                     "DỮ LIỆU LÁ SỐ NÉN:\n" + compactChart,
                     "YÊU CẦU: Chia khía cạnh này thành 6 đến 8 trục tiêu chí (hoặc 12 tháng T1..T12 nếu hỏi về diễn biến tháng), chấm điểm khách quan từ 15 đến 98 dựa trên sao Miếu/Vượng/Hãm, Cát/Sát tinh, Tuần/Triệt và Tứ Hóa.",
-                    'Trả về DUY NHẤT JSON hợp lệ (không markdown): {"title": "Tên biểu đồ ngắn gọn", "chartType": "radar hoặc bar hoặc line", "summary": "Nhận định tổng quan 2-3 câu về biểu đồ này", "items": [{"label": "Tên trục ngắn gọn (<=16 ký tự)", "score": 82, "note": "Giải thích ngắn vì sao đạt điểm này theo sao"}], "memory_note": "Tóm tắt 1 câu dưới 35 từ về kết quả biểu đồ này"}',
+                    'Trả về DUY NHẤT chuỗi JSON hợp lệ (không viết thêm chữ nào ngoài JSON): {"title": "Tên biểu đồ ngắn gọn", "chartType": "radar", "summary": "Nhận định tổng quan 2-3 câu về biểu đồ này", "items": [{"label": "Tên trục ngắn gọn", "score": 82, "note": "Giải thích ngắn vì sao đạt điểm này theo sao"}], "memory_note": "Tóm tắt 1 câu dưới 35 từ về kết quả biểu đồ này"}',
                 ].join("\n\n");
 
                 const genAI = new GoogleGenerativeAI(apiKey);
                 let fullText = "", success = false, lastErr: any = null;
-                for (const m of models.slice(0, 3)) {
+                for (const m of models.slice(0, 6)) {
                     try {
                         send({ type: "step", text: `Model ${m} đang chấm điểm & dựng trục biểu đồ...` });
-                        const model = genAI.getGenerativeModel({ model: m, generationConfig: { temperature: 0.35, responseMimeType: "application/json" } });
+                        const model = genAI.getGenerativeModel({ model: m, generationConfig: { temperature: 0.35 } });
                         const resStream = await model.generateContentStream(prompt);
                         fullText = "";
                         for await (const chunk of resStream.stream) {
@@ -45,11 +45,12 @@ export async function POST(req: NextRequest) {
                         }
                         success = true;
                         break;
-                    } catch (e: any) { lastErr = e; send({ type: "step", text: `Model ${m} bận, chuyển sang model dự phòng...` }); }
+                    } catch (e: any) { lastErr = e; send({ type: "step", text: `Model ${m} đang bận, chuyển sang model dự phòng...` }); }
                 }
-                if (!success) throw lastErr || new Error("Model đang bận");
+                if (!success) throw lastErr || new Error("Tất cả model đều đang bận, thử lại sau vài giây");
 
-                const parsed = JSON.parse(fullText.trim().replace(/```json/g, "").replace(/```/g, "").trim());
+                const rawJson = fullText.slice(fullText.indexOf("{"), fullText.lastIndexOf("}") + 1);
+                const parsed = JSON.parse(rawJson);
                 send({ type: "done", data: { spec: { title: parsed.title || aspect, layerLabel, chartType: parsed.chartType || "radar", summary: parsed.summary || "", items: parsed.items || [] }, memoryNote: parsed.memory_note || "" } });
             } catch (err: any) { send({ type: "error", error: err?.message || "Lỗi lập biểu đồ AI" }); }
             finally { controller.close(); }

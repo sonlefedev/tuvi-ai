@@ -34,15 +34,20 @@ export function loadChartMemory(chartKey: string, compactChart: string): ChartMe
 
 export function saveChartMemory(state: ChartMemoryState): void {
     if (typeof window === "undefined") return;
+    const trimmed: ChartMemoryState = {
+        ...state,
+        memoryNotes: [...new Set(state.memoryNotes)].slice(-12),
+        messages: state.messages.slice(-20),
+    };
+    const payload = JSON.stringify(trimmed);
     try {
-        const trimmed: ChartMemoryState = {
-            ...state,
-            memoryNotes: [...new Set(state.memoryNotes)].slice(-12),
-            messages: state.messages.slice(-20),
-        };
-        localStorage.setItem(state.chartKey, JSON.stringify(trimmed));
-        window.dispatchEvent(new Event("tuvi-memory-updated"));
-    } catch { }
+        localStorage.setItem(state.chartKey, payload);
+    } catch {
+        // Nếu đầy bộ nhớ trình duyệt, tự xóa các profile cũ khác rồi lưu lại
+        Object.keys(localStorage).filter((k) => k.startsWith(PREFIX) && k !== state.chartKey).forEach((k) => localStorage.removeItem(k));
+        try { localStorage.setItem(state.chartKey, payload); } catch { }
+    }
+    window.dispatchEvent(new Event("tuvi-memory-updated"));
 }
 
 export function clearChartMemory(chartKey: string): void {

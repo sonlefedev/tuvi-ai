@@ -48,7 +48,7 @@ export default function Home() {
             onSelectCung={setSelectedCung}
           />
           {selectedCung && (
-            <CungDetail cung={selectedCung} tongQuan={result.tong_quan} namXem={namXem} />
+            <CungDetail cung={selectedCung} cungList={result.cung_12} tongQuan={result.tong_quan} namXem={namXem} />
           )}
         </div>
       )}

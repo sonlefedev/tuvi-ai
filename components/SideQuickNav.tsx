@@ -65,7 +65,7 @@ export default function SideQuickNav({ hasResult, cungList, selectedChi, onSelec
             )}
 
             {/* Menu nổi đầy đủ 2 Tab (12 Cung & Mục lục) cho Smartphone */}
-            <div className="xl:hidden fixed bottom-4 right-4 z-40">
+            <div className="xl:hidden fixed bottom-16 right-4 z-50">
                 {mobileOpen && (
                     <div className="mb-2 p-2.5 rounded-2xl bg-slate-900/95 border border-slate-700 shadow-2xl w-64 text-xs space-y-2 backdrop-blur">
                         {hasResult && (

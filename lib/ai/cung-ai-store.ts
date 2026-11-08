@@ -1,31 +1,16 @@
 // lib/ai/cung-ai-store.ts
-import { loadChartMemory, saveChartMemory } from "./tuvi-memory-store";
-
-export interface CungAiReading {
-    chinhTinhBanCung: string;
-    phuTinhTuongTac: string;
-    tamHopXungChieu: string;
-    nhiHopGiapPhiHoa: string;
-    ducKetLoiKhuyen: string;
-}
+import { CungAiReading, loadChartMemory, saveChartMemory } from "./tuvi-memory-store";
+export type { CungAiReading };
 
 export function getCachedCungAi(chartKey: string, chi: string): CungAiReading | null {
-    if (typeof window === "undefined") return null;
-    try {
-        const raw = localStorage.getItem(`${chartKey}_cung_v2_${chi}`);
-        return raw ? JSON.parse(raw) : null;
-    } catch {
-        return null;
-    }
+    return loadChartMemory(chartKey, "").cungReadings?.[chi] || null;
 }
 
 export function saveCachedCungAi(chartKey: string, chi: string, fullCompactChart: string, reading: CungAiReading, memoryNote?: string): void {
-    if (typeof window === "undefined") return;
-    try {
-        localStorage.setItem(`${chartKey}_cung_v2_${chi}`, JSON.stringify(reading));
-        if (memoryNote) {
-            const mem = loadChartMemory(chartKey, fullCompactChart);
-            saveChartMemory({ ...mem, memoryNotes: [...mem.memoryNotes, memoryNote] });
-        }
-    } catch { }
+    const mem = loadChartMemory(chartKey, fullCompactChart);
+    saveChartMemory({
+        ...mem,
+        cungReadings: { ...mem.cungReadings, [chi]: reading },
+        memoryNotes: memoryNote ? [...mem.memoryNotes, memoryNote] : mem.memoryNotes,
+    });
 }

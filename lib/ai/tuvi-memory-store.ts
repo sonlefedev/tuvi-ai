@@ -1,8 +1,21 @@
 // lib/ai/tuvi-memory-store.ts
 export interface ChatTurn { role: "user" | "ai"; text: string; ts: number; }
-export interface ChartMemoryState { chartKey: string; compactChart: string; memoryNotes: string[]; messages: ChatTurn[]; }
+export interface CungAiReading {
+    chinhTinhBanCung: string;
+    phuTinhTuongTac: string;
+    tamHopXungChieu: string;
+    nhiHopGiapPhiHoa: string;
+    ducKetLoiKhuyen: string;
+}
+export interface ChartMemoryState {
+    chartKey: string;
+    compactChart: string;
+    memoryNotes: string[];
+    messages: ChatTurn[];
+    cungReadings: Record<string, CungAiReading>;
+}
 
-const PREFIX = "tuvi_ai_mem_v1_";
+const PREFIX = "tuvi_ai_profile_v2_";
 
 export function buildChartKey(tb: any): string {
     const raw = [tb?.ho_ten, tb?.nam_sinh, tb?.thang_sinh, tb?.ngay_sinh, tb?.gio_sinh, tb?.gioi_tinh].join("_");
@@ -10,12 +23,13 @@ export function buildChartKey(tb: any): string {
 }
 
 export function loadChartMemory(chartKey: string, compactChart: string): ChartMemoryState {
-    if (typeof window === "undefined") return { chartKey, compactChart, memoryNotes: [], messages: [] };
+    const empty: ChartMemoryState = { chartKey, compactChart, memoryNotes: [], messages: [], cungReadings: {} };
+    if (typeof window === "undefined") return empty;
     try {
         const saved = localStorage.getItem(chartKey);
-        if (saved) return { ...JSON.parse(saved), compactChart };
+        if (saved) return { ...empty, ...JSON.parse(saved), compactChart };
     } catch { }
-    return { chartKey, compactChart, memoryNotes: [], messages: [] };
+    return empty;
 }
 
 export function saveChartMemory(state: ChartMemoryState): void {
@@ -23,7 +37,7 @@ export function saveChartMemory(state: ChartMemoryState): void {
     try {
         const trimmed: ChartMemoryState = {
             ...state,
-            memoryNotes: [...new Set(state.memoryNotes)].slice(-10), // Lọc trùng & giữ tối đa 10 ký ức cốt lõi
+            memoryNotes: [...new Set(state.memoryNotes)].slice(-12),
             messages: state.messages.slice(-20),
         };
         localStorage.setItem(state.chartKey, JSON.stringify(trimmed));

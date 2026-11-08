@@ -1,12 +1,13 @@
 "use client";
 
 import { useState } from "react";
+import AppIntroCard from "@/components/AppIntroCard";
 import InputForm from "@/components/InputForm";
 import LaSoBanCo from "@/components/LaSoBanCo";
 import CungDetail from "@/components/CungDetail";
-import { HoroscopeResult, CungItem } from "@/lib/types";
 import AiLuanPanel from "@/components/AiLuanPanel";
-import AppIntroCard from "@/components/AppIntroCard";
+import { HoroscopeResult, CungItem } from "@/lib/types";
+import { setBaseTabTitle } from "@/lib/tab-notify";
 
 export default function Home() {
   const [loading, setLoading] = useState(false);
@@ -27,6 +28,7 @@ export default function Home() {
       if (data.success) {
         setResult(data.data);
         setSelectedCung(data.data.cung_12[0]);
+        setBaseTabTitle(data.data.thien_ban?.ho_ten, formData.namXem);
       } else {
         alert(data.error || "Lỗi");
       }
@@ -51,7 +53,7 @@ export default function Home() {
             onSelectCung={setSelectedCung}
           />
           {selectedCung && (
-            <CungDetail cung={selectedCung} thienBan={result.thien_ban} cungList={result.cung_12} tongQuan={result.tong_quan} namXem={namXem} />
+            <CungDetail cung={selectedCung} cungList={result.cung_12} thienBan={result.thien_ban} tongQuan={result.tong_quan} namXem={namXem} />
           )}
           <AiLuanPanel result={result} />
         </div>

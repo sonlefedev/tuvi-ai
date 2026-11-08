@@ -6,6 +6,7 @@ import { HoroscopeResult } from "@/lib/types";
 import { compressLaSoToText, estimateTokens } from "@/lib/ai/compress-laso";
 import { buildChartKey, clearChartMemory, loadChartMemory, saveChartMemory, ChartMemoryState } from "@/lib/ai/tuvi-memory-store";
 import { streamAiEndpoint } from "@/lib/ai/stream-client";
+import { notifyTabStatus } from "@/lib/tab-notify";
 import AiProgressLog from "./AiProgressLog";
 
 const QUICK_PROMPTS = [
@@ -35,6 +36,7 @@ export default function AiLuanPanel({ result }: { result: HoroscopeResult }) {
         setQuestion("");
         setStreamingText("");
         setSteps(["Đang chuẩn bị câu hỏi & ngữ cảnh lá số..."]);
+        notifyTabStatus("⏳ Trợ lý AI đang trả lời...");
 
         const nextMessages = [...store.messages, { role: "user" as const, text: cleanQ, ts: Date.now() }];
         const optimistic = { ...store, messages: nextMessages };
@@ -56,8 +58,10 @@ export default function AiLuanPanel({ result }: { result: HoroscopeResult }) {
                 };
                 setStore(updated);
                 saveChartMemory(updated);
+                notifyTabStatus("🔔 (1) AI đã trả lời xong!");
             }
         } catch (e: any) {
+            notifyTabStatus("⚠️ Lỗi kết nối AI", 3000);
             alert(e?.message || "Không thể gọi AI");
         } finally {
             setStreamingText("");
@@ -79,9 +83,7 @@ export default function AiLuanPanel({ result }: { result: HoroscopeResult }) {
                     </div>
                 </div>
                 {store.memoryNotes.length > 0 && (
-                    <button type="button" onClick={() => { clearChartMemory(store.chartKey); setStore({ ...store, memoryNotes: [], messages: [] }); }} className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-rose-950/60 text-slate-400 hover:text-rose-300 text-[11px] cursor-pointer">
-                        <Trash2 className="w-3 h-3" /> Xóa ký ức
-                    </button>
+                    <button type="button" onClick={() => { clearChartMemory(store.chartKey); setStore({ ...store, memoryNotes: [], messages: [] }); }} className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-rose-950/60 text-slate-400 hover:text-rose-300 text-[11px] cursor-pointer"><Trash2 className="w-3 h-3" /> Xóa ký ức</button>
                 )}
             </div>
 

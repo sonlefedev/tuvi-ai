@@ -8,6 +8,7 @@ import { compressCungCoDinh, compressLaSoToText } from "@/lib/ai/compress-laso";
 import { buildChartKey } from "@/lib/ai/tuvi-memory-store";
 import { CungAiReading, getCachedCungAi, saveCachedCungAi } from "@/lib/ai/cung-ai-store";
 import { streamAiEndpoint } from "@/lib/ai/stream-client";
+import { notifyTabStatus } from "@/lib/tab-notify";
 import AiProgressLog from "./AiProgressLog";
 import CungReadingTabs from "./CungReadingTabs";
 import { Compass, Loader2, RefreshCw, Sparkles } from "lucide-react";
@@ -37,6 +38,7 @@ export default function CungDetail({ cung, cungList = [], thienBan, namXem }: Pr
         if (loading || !fixedContext || !thienBan) return;
         setLoading(true);
         setSteps(["Lọc sao cố định lục diện của cung " + cung.ten_cung + "..."]);
+        notifyTabStatus(`⏳ AI đang luận cung ${cung.ten_cung}...`);
         try {
             const data = await streamAiEndpoint(
                 "/api/ai-cung",
@@ -47,8 +49,10 @@ export default function CungDetail({ cung, cungList = [], thienBan, namXem }: Pr
             if (data?.reading) {
                 setAiReading(data.reading);
                 saveCachedCungAi(chartKey, cung.chi, compressLaSoToText(thienBan, cungList), data.reading, data.memoryNote);
+                notifyTabStatus(`🔔 (1) Đã luận xong cung ${cung.ten_cung}!`);
             }
         } catch (e: any) {
+            notifyTabStatus("⚠️ Lỗi luận cung AI", 3000);
             alert(e?.message || "Không thể gọi AI luận cung");
         } finally {
             setLoading(false);
@@ -83,9 +87,7 @@ export default function CungDetail({ cung, cungList = [], thienBan, namXem }: Pr
                 <div className="flex flex-wrap gap-1.5 pt-1">{info.phiHoaList.map((p, i) => <span key={i} className={`px-2 py-0.5 rounded border text-[11px] ${p.label === "Hóa Kỵ" ? "bg-rose-950/50 border-rose-500/30 text-rose-300" : "bg-emerald-950/40 border-emerald-500/30 text-emerald-300"}`}>{p.label} ({p.star}) → <b>{p.destName}</b></span>)}</div>
             </div>
 
-            {aiReading ? (
-                <CungReadingTabs reading={aiReading} cungName={cung.ten_cung} />
-            ) : (
+            {aiReading ? <CungReadingTabs reading={aiReading} cungName={cung.ten_cung} /> : (
                 <div className="p-3.5 bg-slate-950/40 rounded-xl border border-slate-800/80 space-y-1.5 text-slate-300">
                     <p className="font-bold text-amber-300">Tóm tắt nhanh (bấm nút "AI Luận Chuyên Sâu (~4.500 chữ)" ở góc trên để xem phân tích 5 phần):</p>
                     {info.yNghiaSao.map((l, i) => <p key={i}>{l}</p>)}

@@ -8,6 +8,7 @@ import ThienBanCenter from "./ThienBanCenter";
 import LaSoExportSheet from "./LaSoExportSheet";
 import { TAM_HOP_MAP, XUNG_CHIEU_MAP } from "@/lib/tuong-tac";
 import { downloadLaSoPng } from "@/lib/export-image";
+import { notifyTabStatus } from "@/lib/tab-notify";
 
 const GRID_POS = [
     "row-start-4 col-start-3", "row-start-4 col-start-2", "row-start-4 col-start-1", "row-start-3 col-start-1",
@@ -34,8 +35,10 @@ export default function LaSoBanCo({ cungList, thienBan, selectedChi, onSelectCun
     const handleDownload = async () => {
         if (exporting) return;
         setExporting(true);
+        notifyTabStatus("🖼️ Đang xuất ảnh lá số 4K...");
         try {
             await downloadLaSoPng(exportRef.current, tb?.ho_ten, tb?.nam_xem || tb?.nam_xem_han);
+            notifyTabStatus("✅ Đã tải ảnh lá số!", 3000);
         } finally {
             setExporting(false);
         }

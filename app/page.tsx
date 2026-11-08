@@ -5,6 +5,7 @@ import InputForm from "@/components/InputForm";
 import LaSoBanCo from "@/components/LaSoBanCo";
 import CungDetail from "@/components/CungDetail";
 import { HoroscopeResult, CungItem } from "@/lib/types";
+import AiLuanPanel from "@/components/AiLuanPanel";
 
 export default function Home() {
   const [loading, setLoading] = useState(false);
@@ -48,8 +49,9 @@ export default function Home() {
             onSelectCung={setSelectedCung}
           />
           {selectedCung && (
-            <CungDetail cung={selectedCung} cungList={result.cung_12} tongQuan={result.tong_quan} namXem={namXem} />
+            <CungDetail cung={selectedCung} thienBan={result.thien_ban} cungList={result.cung_12} tongQuan={result.tong_quan} namXem={namXem} />
           )}
+          <AiLuanPanel result={result} />
         </div>
       )}
     </main>

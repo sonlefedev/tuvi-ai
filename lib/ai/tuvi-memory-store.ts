@@ -31,6 +31,7 @@ export function buildChatContext(state: ChartMemoryState, selectedCung?: { chi: 
         const entry = Object.entries(state.cungReadings || {}).find(([, v]) => v?.ducKetLoiKhuyen?.toLowerCase().includes(matched.toLowerCase()));
         if (entry?.[1]?.ducKetLoiKhuyen) parts.push(`ĐÚC KẾT LIÊN QUAN (${matched}): ${entry[1].ducKetLoiKhuyen.slice(0, 280)}`);
     }
+    try { const j = JSON.parse(localStorage.getItem(`${state.chartKey}_journal_v1`) || "[]"); if (j.length) parts.push("NHẬT KÝ THỰC TẾ ĐƯƠNG SỐ:\n" + j.slice(0, 4).map((x: any) => `- [${x.tag}] ${x.text}`).join("\n")); } catch {}
     return parts.join("\n");
 }
 

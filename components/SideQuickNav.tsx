@@ -14,7 +14,7 @@ const SECTIONS = [
     { id: "sec-form", label: "Nhập ngày sinh" },
     { id: "sec-board", label: "Bàn cờ 12 cung", needResult: true },
     { id: "sec-cung", label: "Luận cung chi tiết", needResult: true },
-    { id: "sec-chart", label: "Biểu đồ AI 4 tầng", needResult: true },
+    { id: "sec-timeline", label: "Timeline 12 tháng", needResult: true }, { id: "sec-chart", label: "Biểu đồ AI 4 tầng", needResult: true }, { id: "sec-journal", label: "Nhật ký chiêm nghiệm", needResult: true }, { id: "sec-synastry", label: "Hợp lá số đôi", needResult: true }, { id: "sec-rectify", label: "Định giờ sinh ngược", needResult: true },
 ];
 export default function SideQuickNav({ hasResult, cungList, selectedChi, onSelectCung }: Props) {
     const [mobileOpen, setMobileOpen] = useState(false);

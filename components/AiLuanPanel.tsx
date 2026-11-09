@@ -13,7 +13,7 @@ import AiProgressLog from "./AiProgressLog";
 const QUICK_PROMPTS = ["Luận cung đang chọn", "Tổng quan Mệnh – Thân", "Sự nghiệp & Tài lộc", "Vận hạn năm nay"];
 const renderBold = (t: string) => t.split(/(\*\*.*?\*\*)/g).map((p, i) => p.startsWith("**") && p.endsWith("**") ? <b key={i} className="text-amber-300 font-bold">{p.slice(2, -2)}</b> : <span key={i}>{p}</span>);
 
-export default function AiLuanPanel({ result, selectedCung }: { result: HoroscopeResult; selectedCung?: CungItem | null }) {
+export default function AiLuanPanel({ result, selectedCung, externalPrompt, onConsumedPrompt }: { result: HoroscopeResult; selectedCung?: CungItem | null; externalPrompt?: string; onConsumedPrompt?: () => void }) {
     const [open, setOpen] = useState(false);
     const [question, setQuestion] = useState("");
     const [loading, setLoading] = useState(false);
@@ -52,6 +52,7 @@ export default function AiLuanPanel({ result, selectedCung }: { result: Horoscop
         finally { setStreamingText(""); setLoading(false); }
     };
 
+    useEffect(() => { if (externalPrompt && store && !loading) { setOpen(true); askAi(externalPrompt); onConsumedPrompt?.(); } }, [externalPrompt, store]);
     if (!store) return null;
     const activeLabel = selectedCung ? `${selectedCung.ten_cung.replace("<THÂN>", "").trim()} • chi ${selectedCung.chi}` : "";
 

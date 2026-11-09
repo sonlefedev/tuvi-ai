@@ -21,7 +21,7 @@ export default function CungDetail({ cung, cungList = [], thienBan, namXem }: Pr
     const [aiReading, setAiReading] = useState<CungAiReading | null>(null);
     const [loading, setLoading] = useState(false);
     const [remoteBusy, setRemoteBusy] = useState(false);
-    const [steps, setSteps] = useState<string[]>([]);
+    const [steps, setSteps] = useState<string[]>([]); const [errMsg, setErrMsg] = useState("");
     const idx = DIA_CHI.indexOf(cung.chi);
     const nameAt = (i: number) => { const c = cungList[(i + 120) % 12]; return c ? `${c.ten_cung.replace("<THÂN>", "").trim()} (${c.chi})` : ""; };
     const nhiHopText = idx >= 0 ? nameAt(1 - idx) : "";
@@ -43,7 +43,7 @@ export default function CungDetail({ cung, cungList = [], thienBan, namXem }: Pr
     const handleAiRead = async () => {
         if (loading || remoteBusy || !fixedContext || !thienBan) return;
         setLoading(true);
-        setSteps(["Lọc sao cố định lục diện của cung " + cung.ten_cung + "..."]);
+        setErrMsg(""); setSteps(["Lọc sao cố định lục diện của cung " + cung.ten_cung + "..."]);
         notifyTabStatus(`⏳ AI đang luận cung ${cung.ten_cung}...`);
         await setOperationLock(chartKey, `cung_${cung.chi}`, true);
         try {
@@ -53,7 +53,7 @@ export default function CungDetail({ cung, cungList = [], thienBan, namXem }: Pr
                 saveCachedCungAi(chartKey, cung.chi, compressLaSoToText(thienBan, cungList), data.reading, data.memoryNote);
                 notifyTabStatus(`🔔 (1) Đã luận xong cung ${cung.ten_cung}!`);
             }
-        } catch (e: any) { notifyTabStatus("⚠️ Lỗi luận cung AI", 3000); alert(e?.message || "Không thể gọi AI luận cung"); }
+        } catch (e: any) { notifyTabStatus("⚠️ Lỗi luận cung AI", 3000); setErrMsg(e?.message || "Không thể gọi AI luận cung"); }
         finally { setLoading(false); await setOperationLock(chartKey, `cung_${cung.chi}`, false); }
     };
 
@@ -71,6 +71,7 @@ export default function CungDetail({ cung, cungList = [], thienBan, namXem }: Pr
                 </button>
             </div>
             <AiProgressLog steps={steps} active={loading} />
+            {errMsg && <div className="p-3 rounded-xl bg-rose-950/60 border border-rose-500/40 text-rose-200 flex justify-between items-center gap-2"><span>⚠️ {errMsg}</span><button type="button" onClick={handleAiRead} className="px-2.5 py-1 rounded-lg bg-rose-600 text-white font-bold shrink-0 cursor-pointer">Thử lại</button></div>}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3 bg-slate-950/60 p-3.5 rounded-xl border border-slate-800">
                 <div><p className="font-bold text-amber-400 mb-1.5">Chính tinh & Sao Lưu {namXem}:</p><div className="flex flex-wrap gap-1.5">{cung.chinh_tinh?.length > 0 ? cung.chinh_tinh.map((s, i) => <span key={i} className="px-2 py-0.5 rounded bg-amber-500/15 text-amber-300 font-bold border border-amber-500/30">★ {s.ten} {s.trang_thai}</span>) : <span className="italic text-slate-500">Vô chính diệu</span>}{cung.sao_luu?.map((s, i) => <span key={i} className="px-2 py-0.5 rounded bg-pink-500/15 text-pink-300 font-bold border border-pink-500/30">{s}</span>)}</div></div>
                 <div><p className="font-bold text-emerald-400 mb-1.5">Cát tinh ({cung.phu_tinh_tot?.length || 0}):</p><div className="flex flex-wrap gap-1">{cung.phu_tinh_tot?.map((s, i) => <span key={i} className="text-[11px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-300 border border-emerald-500/20">{s}</span>)}</div></div>

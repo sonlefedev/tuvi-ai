@@ -14,15 +14,15 @@ export async function POST(req: NextRequest) {
                 send({ type: "step", text: `Nén toàn bộ 12 cung & 48 đường Phi Hóa của ${hoTen || "đương số"}...` });
 
                 const prompt = [
-                    "Bạn là bậc thầy Tử Vi Đẩu Số (Nam Phái & Phi Tinh Tứ Hóa). Hãy viết một BẢN ĐỒ CUỘC ĐỜI TOÀN DIỆN, SÂU SẮC VÀ GIÀU TÍNH THỰC TIỄN (khoảng 4.000 - 5.200 ký tự tiếng Việt) cho đương số có lá số dưới đây.",
+                    "Bạn là bậc thầy Tử Vi Đẩu Số (Nam Phái & Phi Tinh Tứ Hóa). Hãy viết một BẢN ĐỒ CUỘC ĐỜI TOÀN DIỆN, SÂU SẮC VÀ SÚC TÍCH (khoảng 2.600 - 3.300 ký tự tiếng Việt) cho đương số có lá số dưới đây.",
                     "DỮ LIỆU TOÀN LÁ SỐ:\n" + compactChart,
-                    "Dẫn chứng rõ các bộ sao trên lá số và trình bày đúng 7 thẻ đánh dấu sau (mỗi chương viết 2-3 đoạn văn sâu sắc ~700-850 ký tự, không dùng markdown codeblock):\n[M1]\nCHƯƠNG I - CỐT CÁCH BẢN MỆNH & ĐỊNH VỊ CON NGƯỜI\n[M2]\nCHƯƠNG II - CON ĐƯỜNG CÔNG DANH, SỰ NGHIỆP & TÀI LỘC\n[M3]\nCHƯƠNG III - TÌNH DUYÊN, HÔN NHÂN, GIA ĐẠO & NHÂN DUYÊN\n[M4]\nCHƯƠNG IV - SỨC KHỎE THỂ CHẤT & BÌNH AN NỘI TÂM\n[M5]\nCHƯƠNG V - NHỮNG ĐIỀU NÊN TRÁNH LÀM ĐỂ TÂM ĐƯỢC AN NHIÊN\n[M6]\nCHƯƠNG VI - KIM CHỈ NAM HÀNH ĐỘNG ĐỂ THÀNH CÔNG, ÊM ẤM & ĐỦ ĐẦY\n[MEM]\nTóm tắt 1 câu dưới 40 từ đúc kết cốt lõi toàn lá số.",
+                    "Dẫn chứng rõ các bộ sao trên lá số và trình bày đúng 7 thẻ đánh dấu sau (mỗi chương viết 1-2 đoạn sâu sắc ~450-550 ký tự, không dùng markdown codeblock):\n[M1]\nCHƯƠNG I - CỐT CÁCH BẢN MỆNH & ĐỊNH VỊ CON NGƯỜI\n[M2]\nCHƯƠNG II - CON ĐƯỜNG CÔNG DANH, SỰ NGHIỆP & TÀI LỘC\n[M3]\nCHƯƠNG III - TÌNH DUYÊN, HÔN NHÂN, GIA ĐẠO & NHÂN DUYÊN\n[M4]\nCHƯƠNG IV - SỨC KHỎE THỂ CHẤT & BÌNH AN NỘI TÂM\n[M5]\nCHƯƠNG V - NHỮNG ĐIỀU NÊN TRÁNH LÀM ĐỂ TÂM ĐƯỢC AN NHIÊN\n[M6]\nCHƯƠNG VI - KIM CHỈ NAM HÀNH ĐỘNG ĐỂ THÀNH CÔNG, ÊM ẤM & ĐỦ ĐẦY\n[MEM]\nTóm tắt 1 câu dưới 40 từ đúc kết cốt lõi toàn lá số.",
                 ].join("\n\n");
 
                 const fullText = await runGeminiStreamResilient(
-                    apiKey, prompt, { task: "lifemap_book", temperature: 0.4, maxOutputTokens: 3600 },
+                    apiKey, prompt, { task: "lifemap_book", temperature: 0.35, maxOutputTokens: 2800 },
                     (s) => send({ type: "step", text: s }),
-                    (full) => send({ type: "chunk", text: `Đang viết Bản Đồ Cuộc Đời (${full.length.toLocaleString("vi-VN")} / ~4.800 ký tự)...` })
+                    (full) => send({ type: "chunk", text: `Đang viết Bản Đồ Cuộc Đời (${full.length.toLocaleString("vi-VN")} / ~3.000 ký tự)...`, raw: full })
                 );
 
                 const getPart = (tag: string, next: string[]) => {

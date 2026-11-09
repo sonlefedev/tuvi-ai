@@ -5,7 +5,7 @@ export type AiTaskKind = "chat_quick" | "chat_deep" | "chart_json" | "cung_deep"
 
 let cache: { all: string[]; exp: number } | null = null;
 const PRO_ORDER = ["gemini-4-argon", "gemini-3.1-pro-preview", "gemini-2.5-pro", "gemini-3.8-flash"];
-const FLASH_ORDER = ["gemini-3.8-flash", "gemini-3.6-flash", "gemini-2.5-flash", "gemini-2.0-flash"];
+const FLASH_ORDER = ["gemini-2.0-flash", "gemini-2.5-flash-lite", "gemini-3.8-flash", "gemini-3.6-flash", "gemini-2.5-flash"];
 const LITE_ORDER = ["gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-2.5-flash-lite", "gemini-2.0-flash-lite"];
 const NON_TEXT = /image|tts|transcribe|live|omni|embedding|robotics|veo|lyria|aqa|bison|gecko|latest|exp/i;
 

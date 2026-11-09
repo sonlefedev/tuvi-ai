@@ -1,31 +1,27 @@
 // lib/ai/stream-client.ts
-export async function streamAiEndpoint(
-    url: string,
-    payload: any,
-    onStep: (step: string) => void,
-    onChunk?: (partialText: string) => void
-): Promise<any> {
-    const res = await fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-    });
+function extractTag(raw: string, tag: string, next: string[]): string {
+    const s = raw.indexOf(tag);
+    if (s === -1) return "";
+    const after = raw.slice(s + tag.length);
+    const ends = next.map((t) => after.indexOf(t)).filter((i) => i !== -1);
+    return (ends.length > 0 ? after.slice(0, Math.min(...ends)) : after).trim();
+}
+
+export async function streamAiEndpoint(url: string, payload: any, onStep: (step: string) => void, onChunk?: (partialText: string) => void): Promise<any> {
+    const res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
     if (!res.ok || !res.body) {
         const err = await res.json().catch(() => ({}));
         throw new Error(err.error || "Lỗi kết nối máy chủ AI");
     }
-
     const reader = res.body.getReader();
     const decoder = new TextDecoder();
-    let buffer = "";
-    let finalData: any = null;
-    let lastChunk = "";
+    let buffer = "", finalData: any = null, lastChunk = "", lastRaw = "";
 
     const handleLine = (line: string) => {
         if (!line.trim()) return;
         const evt = JSON.parse(line);
         if (evt.type === "step") onStep(evt.text);
-        else if (evt.type === "chunk") { lastChunk = evt.text || lastChunk; onChunk?.(evt.text); }
+        else if (evt.type === "chunk") { lastChunk = evt.text || lastChunk; lastRaw = evt.raw || lastRaw; onChunk?.(evt.text); }
         else if (evt.type === "done") finalData = evt.data;
         else if (evt.type === "error") throw new Error(evt.error);
     };
@@ -39,7 +35,13 @@ export async function streamAiEndpoint(
         for (const line of lines) handleLine(line);
     }
     if (buffer.trim()) handleLine(buffer);
-    if (!finalData && lastChunk.length >= 350) return { reply: lastChunk, answer: lastChunk, partial: true };
-    if (!finalData) throw new Error("Kết nối AI bị ngắt giữa chừng do mạng chậm hoặc quá tải, vui lòng bấm lại!");
+    if (!finalData && lastRaw.includes("[P1]")) {
+        return { reading: { chinhTinhBanCung: extractTag(lastRaw, "[P1]", ["[P2]"]), phuTinhTuongTac: extractTag(lastRaw, "[P2]", ["[P3]"]), tamHopXungChieu: extractTag(lastRaw, "[P3]", ["[P4]"]), nhiHopGiapPhiHoa: extractTag(lastRaw, "[P4]", ["[P5]"]), ducKetLoiKhuyen: extractTag(lastRaw, "[P5]", ["[MEM]"]) }, memoryNote: "" };
+    }
+    if (!finalData && lastRaw.includes("[M1]")) {
+        return { lifeMap: { c1CotCach: extractTag(lastRaw, "[M1]", ["[M2]"]), c2SuNghiep: extractTag(lastRaw, "[M2]", ["[M3]"]), c3TinhDuyen: extractTag(lastRaw, "[M3]", ["[M4]"]), c4SucKhoe: extractTag(lastRaw, "[M4]", ["[M5]"]), c5NenTranh: extractTag(lastRaw, "[M5]", ["[M6]"]), c6KimChiNam: extractTag(lastRaw, "[M6]", ["[MEM]"]) }, memoryNote: "" };
+    }
+    if (!finalData && lastChunk.length >= 250) return { reply: lastChunk, answer: lastChunk };
+    if (!finalData) throw new Error("Máy chủ AI đang bận, vui lòng bấm thử lại!");
     return finalData;
 }

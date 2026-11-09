@@ -28,7 +28,7 @@ export default function AppIntroCard({ hasResult }: { hasResult: boolean }) {
 
             {open && (
                 <div className="p-5 space-y-4 text-xs text-slate-300 leading-relaxed">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2.5">
                         {FEATURES.map((f, i) => (
                             <div key={i} className="p-3 rounded-xl bg-slate-950/65 border border-slate-800">
                                 <div className="font-bold text-amber-300 mb-1">✦ {f.title}</div>
@@ -67,7 +67,7 @@ export default function AppIntroCard({ hasResult }: { hasResult: boolean }) {
 
                         <div className="p-3.5 rounded-xl bg-purple-500/5 border border-purple-500/25 space-y-1.5">
                             <div className="font-bold text-purple-300 flex items-center gap-1.5"><Cpu className="w-3.5 h-3.5" /> Công nghệ & Cách tổ chức Code (cùng Gemini AI)</div>
-                            <p className="text-[11.5px]">Thiết kế, rà soát thuật toán và tối ưu kiến trúc cùng <b className="text-purple-200">Gemini AI</b> theo quy tắc <b className="text-amber-200">Modular Clean Code (mỗi file ≤ 100 dòng)</b>, tách độc lập lõi tính toán thiên văn, bộ nén token AI và giao diện.</p>
+                            <p className="text-[11.5px]">Thiết kế, rà soát thuật toán và tối ưu kiến trúc cùng <b className="text-purple-200">Gemini AI</b> theo quy tắc <b className="text-amber-200">Modular Clean Code (mỗi file ≤ 100 dòng)</b>, tách độc lập lõi tính toán thiên văn, bộ định tuyến đa model AI, đồng bộ Cloud realtime và giao diện.</p>
                             <div className="flex flex-wrap gap-1 pt-0.5">
                                 {TECH_STACK.map((t, i) => <span key={i} className="text-[10px] px-2 py-0.5 rounded bg-slate-900 border border-slate-700 text-slate-200 font-mono flex items-center gap-1"><Code2 className="w-2.5 h-2.5 text-purple-400" />{t}</span>)}
                             </div>

@@ -56,6 +56,11 @@ export function saveChartMemory(state: ChartMemoryState): void {
     pushProfileToCloud(state.chartKey);
 }
 
-export function clearChartMemory(chartKey: string): void {
-    if (typeof window !== "undefined") { localStorage.removeItem(chartKey); window.dispatchEvent(new Event("tuvi-memory-updated")); }
+export async function clearChartMemory(chartKey: string): Promise<void> {
+    if (typeof window === "undefined") return;
+    const prev = loadChartMemory(chartKey, "");
+    const cleared: ChartMemoryState = { ...prev, memoryNotes: [], messages: [] };
+    localStorage.setItem(chartKey, JSON.stringify(cleared));
+    window.dispatchEvent(new Event("tuvi-memory-updated"));
+    await pushProfileToCloud(chartKey);
 }

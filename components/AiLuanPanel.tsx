@@ -75,7 +75,7 @@ export default function AiLuanPanel({ result, selectedCung }: { result: Horoscop
                             <button type="button" onClick={() => box.stepFont(-1)} className="px-1.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-[10px] font-bold cursor-pointer">A-</button>
                             <button type="button" onClick={() => box.stepFont(1)} className="px-1.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-[11px] font-bold cursor-pointer">A+</button>
                             <button type="button" onClick={box.toggleExpand} className="p-1.5 rounded-lg hover:bg-slate-800 text-slate-300 cursor-pointer">{box.expanded ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}</button>
-                            {store.memoryNotes.length > 0 && <button type="button" onClick={() => { clearChartMemory(store.chartKey); setStore({ ...store, memoryNotes: [], messages: [] }); }} className="p-1.5 rounded-lg hover:bg-rose-950/60 text-slate-400 hover:text-rose-300 cursor-pointer"><Trash2 className="w-3.5 h-3.5" /></button>}
+                            {store.memoryNotes.length > 0 && <button type="button" title="Xóa lịch sử chat & ký ức AI" onClick={async () => { setStore({ ...store, memoryNotes: [], messages: [] }); await clearChartMemory(store.chartKey); }} className="p-1.5 rounded-lg hover:bg-rose-950/60 text-slate-400 hover:text-rose-300 cursor-pointer"><Trash2 className="w-3.5 h-3.5" /></button>}
                             <button type="button" onClick={() => setOpen(false)} className="p-1.5 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white cursor-pointer"><X className="w-4 h-4" /></button>
                         </div>
                     </div>

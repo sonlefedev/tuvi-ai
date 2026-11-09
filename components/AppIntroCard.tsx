@@ -1,11 +1,12 @@
 // components/AppIntroCard.tsx
 "use client";
 import React, { useEffect, useState } from "react";
-import { BookOpen, ChevronDown, ChevronUp, Code2, Cpu, Info, Sparkles, UserCheck } from "lucide-react";
+import { BookOpen, ChevronDown, ChevronUp, Code2, Cpu, Info, PlayCircle, Sparkles, UserCheck } from "lucide-react";
 import { FEATURES, LIVE_TIPS, STEPS, TECH_STACK } from "@/lib/intro-data";
 
 export default function AppIntroCard({ hasResult }: { hasResult: boolean }) {
     const [open, setOpen] = useState(true);
+    const [showVideo, setShowVideo] = useState(false);
     const [tipIdx, setTipIdx] = useState(0);
 
     useEffect(() => { if (hasResult) setOpen(false); }, [hasResult]);
@@ -27,9 +28,14 @@ export default function AppIntroCard({ hasResult }: { hasResult: boolean }) {
                         <p className="text-[11px] text-slate-400">Phát triển bởi <b className="text-slate-200">Lê Thanh Sơn</b> (@sonlefedev) • Đồng kiến trúc & tối ưu cùng <b className="text-purple-300">Gemini AI</b></p>
                     </div>
                 </div>
-                <button type="button" className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-slate-800/90 hover:bg-slate-700 text-xs text-amber-200 font-semibold cursor-pointer">
-                    {open ? <><ChevronUp className="w-3.5 h-3.5" /> Thu gọn giới thiệu</> : <><ChevronDown className="w-3.5 h-3.5" /> Khám phá 9 tính năng</>}
-                </button>
+                <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                    <button type="button" onClick={() => { setOpen(true); setShowVideo((v) => !v); }} className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-purple-600/30 hover:bg-purple-600/50 border border-purple-400/40 text-xs text-purple-200 font-bold cursor-pointer">
+                        <PlayCircle className="w-3.5 h-3.5 text-amber-300" /> {showVideo ? "Ẩn Video Demo" : "Xem Video Demo (28s)"}
+                    </button>
+                    <button type="button" onClick={() => setOpen(!open)} className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-slate-800/90 hover:bg-slate-700 text-xs text-amber-200 font-semibold cursor-pointer">
+                        {open ? <><ChevronUp className="w-3.5 h-3.5" /> Thu gọn</> : <><ChevronDown className="w-3.5 h-3.5" /> 9 tính năng</>}
+                    </button>
+                </div>
             </div>
 
             <div className="px-5 py-2 bg-slate-950/70 border-b border-slate-800/70 flex items-center gap-2 text-[11px] text-amber-200/90">
@@ -39,6 +45,16 @@ export default function AppIntroCard({ hasResult }: { hasResult: boolean }) {
 
             {open && (
                 <div className="p-5 space-y-4 text-xs text-slate-300 leading-relaxed">
+                    {showVideo && (
+                        <div className="p-3 rounded-2xl bg-slate-950/90 border border-amber-500/40 space-y-2">
+                            <div className="flex justify-between items-center text-[11px] text-amber-300 font-bold px-1">
+                                <span>🎬 Video Demo Thực Tế Toàn Bộ Tính Năng (28s HD)</span>
+                                <button type="button" onClick={() => setShowVideo(false)} className="text-slate-400 hover:text-white underline cursor-pointer">Đóng video</button>
+                            </div>
+                            <video src="/intro-demo.mp4" controls autoPlay playsInline preload="metadata" className="w-full max-h-[420px] rounded-xl bg-black border border-slate-800" />
+                        </div>
+                    )}
+
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2.5">
                         {FEATURES.map((f, i) => (
                             <div key={i} className="p-3 rounded-xl bg-slate-950/65 border border-slate-800 hover:border-amber-500/45 hover:-translate-y-0.5 transition duration-200">
@@ -63,25 +79,17 @@ export default function AppIntroCard({ hasResult }: { hasResult: boolean }) {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
                         <div className="p-3.5 rounded-xl bg-slate-950/65 border border-slate-800 flex items-center gap-3.5">
-                            <div className="w-16 h-16 rounded-full overflow-hidden ring-2 ring-emerald-400/70 shadow-lg shrink-0">
-                                <img src="/avatar.jpg" alt="Lê Thanh Sơn" className="w-full h-full object-cover" />
-                            </div>
+                            <div className="w-16 h-16 rounded-full overflow-hidden ring-2 ring-emerald-400/70 shadow-lg shrink-0"><img src="/avatar.jpg" alt="Lê Thanh Sơn" className="w-full h-full object-cover" /></div>
                             <div className="space-y-1">
                                 <div className="font-bold text-emerald-400 flex items-center gap-1.5"><UserCheck className="w-3.5 h-3.5" /> Người xây dựng: Lê Thanh Sơn</div>
                                 <p className="text-[11.5px]">Người yêu thích nghiên cứu Tử Vi Đẩu Số, kết hợp thuật toán cổ học với trí tuệ nhân tạo để tạo trải nghiệm tra cứu sinh động, dễ hiểu.</p>
-                                <div className="flex gap-3 pt-0.5 text-[11px]">
-                                    <a href="https://github.com/sonlefedev" target="_blank" rel="noopener noreferrer" className="text-cyan-400 hover:underline font-semibold">GitHub: @sonlefedev ↗</a>
-                                    <a href="https://github.com/sonlefedev/tuvi-ai" target="_blank" rel="noopener noreferrer" className="text-purple-400 hover:underline font-semibold">Mã nguồn: tuvi-ai ↗</a>
-                                </div>
+                                <div className="flex gap-3 pt-0.5 text-[11px]"><a href="https://github.com/sonlefedev" target="_blank" rel="noopener noreferrer" className="text-cyan-400 hover:underline font-semibold">GitHub: @sonlefedev ↗</a><a href="https://github.com/sonlefedev/tuvi-ai" target="_blank" rel="noopener noreferrer" className="text-purple-400 hover:underline font-semibold">Mã nguồn: tuvi-ai ↗</a></div>
                             </div>
                         </div>
-
                         <div className="p-3.5 rounded-xl bg-purple-500/5 border border-purple-500/25 space-y-1.5">
                             <div className="font-bold text-purple-300 flex items-center gap-1.5"><Cpu className="w-3.5 h-3.5" /> Kiến trúc & Công nghệ</div>
                             <p className="text-[11.5px]">Xây dựng theo chuẩn <b className="text-amber-200">Modular Clean Code (mỗi file ≤ 100 dòng)</b>, Smart Router đa model Gemini và đồng bộ Supabase Cloud realtime.</p>
-                            <div className="flex flex-wrap gap-1 pt-0.5">
-                                {TECH_STACK.map((t, i) => <span key={i} className="text-[10px] px-2 py-0.5 rounded bg-slate-900 border border-slate-700 text-slate-200 font-mono flex items-center gap-1"><Code2 className="w-2.5 h-2.5 text-purple-400" />{t}</span>)}
-                            </div>
+                            <div className="flex flex-wrap gap-1 pt-0.5">{TECH_STACK.map((t, i) => <span key={i} className="text-[10px] px-2 py-0.5 rounded bg-slate-900 border border-slate-700 text-slate-200 font-mono flex items-center gap-1"><Code2 className="w-2.5 h-2.5 text-purple-400" />{t}</span>)}</div>
                         </div>
                     </div>
                 </div>

@@ -30,7 +30,7 @@ export default function SideQuickNav({ hasResult, cungList, selectedChi, onSelec
     const visibleSections = SECTIONS.filter((s) => !s.needResult || hasResult);
     return (
         <>
-            <aside className="hidden xl:flex fixed left-2 2xl:left-5 top-1/2 -translate-y-1/2 w-40 2xl:w-48 flex-col gap-1.5 p-2.5 rounded-2xl bg-slate-900/90 border border-slate-800/90 shadow-2xl backdrop-blur z-30 text-xs">
+            <aside className="hidden 2xl:flex fixed left-2 2xl:left-5 top-1/2 -translate-y-1/2 w-40 2xl:w-48 flex-col gap-1.5 p-2.5 rounded-2xl bg-slate-900/90 border border-slate-800/90 shadow-2xl backdrop-blur z-30 text-xs">
                 <div className="font-bold text-amber-300 flex items-center gap-1.5 px-2 pb-1.5 border-b border-slate-800 text-[11px] uppercase tracking-wider">
                     <ListTree className="w-3.5 h-3.5" /> Mục lục nhanh
                 </div>
@@ -39,7 +39,7 @@ export default function SideQuickNav({ hasResult, cungList, selectedChi, onSelec
                 ))}
             </aside>
             {hasResult && cungList.length > 0 && (
-                <aside className="hidden xl:flex fixed right-2 2xl:right-5 top-1/2 -translate-y-1/2 w-40 2xl:w-48 flex-col gap-1 p-2.5 rounded-2xl bg-slate-900/90 border border-slate-800/90 shadow-2xl backdrop-blur z-30 text-xs">
+                <aside className="hidden 2xl:flex fixed right-2 2xl:right-5 top-1/2 -translate-y-1/2 w-40 2xl:w-48 flex-col gap-1 p-2.5 rounded-2xl bg-slate-900/90 border border-slate-800/90 shadow-2xl backdrop-blur z-30 text-xs">
                     <div className="font-bold text-cyan-300 flex items-center gap-1.5 px-2 pb-1.5 border-b border-slate-800 text-[11px] uppercase tracking-wider">
                         <Compass className="w-3.5 h-3.5" /> Chọn nhanh cung
                     </div>
@@ -56,7 +56,7 @@ export default function SideQuickNav({ hasResult, cungList, selectedChi, onSelec
                 </aside>
             )}
             {/* Menu nổi đầy đủ 2 Tab (12 Cung & Mục lục) cho Smartphone */}
-            <div className="xl:hidden fixed bottom-16 right-4 z-50">
+            <div className="2xl:hidden fixed bottom-16 right-4 z-50">
                 {mobileOpen && (
                     <div className="mb-2 p-2.5 rounded-2xl bg-slate-900/95 border border-slate-700 shadow-2xl w-64 text-xs space-y-2 backdrop-blur">
                         {hasResult && (

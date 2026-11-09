@@ -53,7 +53,7 @@ export default function AiLuanPanel({ result, selectedCung }: { result: Horoscop
     };
 
     if (!store) return null;
-    const activeLabel = selectedCung ? `${selectedCung.ten_cung.replace("<THÂN>", "").trim()} (${selectedCung.chi})` : "";
+    const activeLabel = selectedCung ? `${selectedCung.ten_cung.replace("<THÂN>", "").trim()} • chi ${selectedCung.chi}` : "";
 
     return (
         <>

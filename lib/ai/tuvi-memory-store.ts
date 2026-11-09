@@ -19,8 +19,9 @@ export function buildChartKey(tb: any): string {
 export function buildChatContext(state: ChartMemoryState, selectedCung?: { chi: string; ten_cung: string } | null, question = ""): string {
     const parts: string[] = [];
     if (selectedCung) {
-        const cleanName = selectedCung.ten_cung.replace("<THÂN>", "[THÂN]").trim();
-        parts.push(`CUNG ĐANG MỞ TRÊN BÀN CỜ: ${cleanName} (${selectedCung.chi})`);
+        const isCuThan = selectedCung.ten_cung.includes("<THÂN>");
+        const cleanName = selectedCung.ten_cung.replace("<THÂN>", "").trim();
+        parts.push(`CUNG ĐANG MỞ TRÊN BÀN CỜ: ${cleanName}${isCuThan ? " [CƯ_THÂN]" : ""} tại địa chi ${selectedCung.chi}`);
         const r = state.cungReadings?.[selectedCung.chi];
         if (r?.ducKetLoiKhuyen) parts.push(`ĐÚC KẾT ĐÃ LUẬN CỦA CUNG ${cleanName}: ${r.ducKetLoiKhuyen.slice(0, 320)}`);
     }

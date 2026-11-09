@@ -25,7 +25,7 @@ function fmtChinhTinh(list?: any[]): string {
 }
 
 function formatFixedCung(role: string, c: any): string {
-    const ten = (c.ten_cung || "").replace("<THÂN>", "[THÂN]");
+    const ten = (c.ten_cung || "").replace("<THÂN>", "[CƯ_THÂN]");
     const badges = (c.badges || []).filter(isFixedBadge);
     const meta = [role, `${expandCanChi(c.can_cung)}[${CHI_EL[c.chi] || ""}]`, ten, "TS:" + c.trang_sinh, ...badges].filter(Boolean).join("|");
     return `${meta} => ${fmtChinhTinh(c.chinh_tinh)} | +${(c.phu_tinh_tot || []).filter(isFixedStar).join(",")} | -${(c.phu_tinh_xau || []).filter(isFixedStar).join(",")} | ${extractPhi4(c)}`;
@@ -44,29 +44,41 @@ export function compressCungCoDinh(tb: ThienBanData, cungList: CungItem[], targe
     return header + "\n" + blocks.join("\n");
 }
 
+function findStarLocs(cungList: CungItem[], targets: string[]): string {
+    return targets.map((t) => {
+        const found = cungList.find((c) => [...(c.phu_tinh_tot || []), ...(c.phu_tinh_xau || [])].some((s) => s.replace(/\(.*?\)/g, "").trim() === t));
+        return `${t.replace("Hóa ", "")}@${found ? `${found.ten_cung.replace("<THÂN>", "").trim()}(${found.chi})` : "?"}`;
+    }).join("|");
+}
+
 export function compressLaSoToText(tb: ThienBanData, cungList: CungItem[]): string {
     if (!tb || !cungList?.length) return "";
     const dvCung = cungList.find((c) => c.dv_cung === "ĐV.MỆNH");
     const luuCung = cungList.find((c) => c.luu_cung === "L.MỆNH");
     const thCung = cungList.find((c) => c.badges?.includes("Tiểu Hạn"));
     const dvRange = dvCung ? `${expandCanChi(dvCung.can_cung)}(${dvCung.dai_van}-${Number(dvCung.dai_van) + 9}t)` : "";
-    const hoaLocs = ["Hóa Lộc", "Hóa Quyền", "Hóa Khoa", "Hóa Kỵ"].map((h) => {
-        const found = cungList.find((c) => [...(c.phu_tinh_tot || []), ...(c.phu_tinh_xau || [])].includes(h));
-        return `${h.replace("Hóa ", "")}@${found ? `${found.ten_cung.replace("<THÂN>", "").trim()}(${found.chi})` : "?"}`;
-    }).join("|");
+    const hoaGoc = findStarLocs(cungList, ["Hóa Lộc", "Hóa Quyền", "Hóa Khoa", "Hóa Kỵ"]);
+    const hoaLuu = findStarLocs(cungList, ["L.Hóa Lộc", "L.Hóa Quyền", "L.Hóa Khoa", "L.Hóa Kỵ"]);
+    const saoLuuKey = findStarLocs(cungList, ["L.Thái Tuế", "L.Lộc Tồn", "L.K Dượng", "L.Đà La", "L.Thiên Mã", "L.Tang Môn", "L.Bạch Hổ", "L.Thiên Khốc", "L.Thiên Hư"]);
 
     const header = [
         `TB:${tb.ho_ten || "Đương số"}|Giới:${tb.gioi_tinh || ""}|${tb.nam_sinh}, ${tb.thang_sinh}, ${tb.ngay_sinh}, Giờ ${tb.gio_sinh}`,
         `${tb.am_duong}(${tb.am_duong_ly || ""})|Mệnh:${tb.ban_menh}|Cục:${tb.cuc_so || tb.cuc}|${tb.menh_cuc}`,
-        `${tb.than_cu}|Chủ:${tb.menh_chu}/${tb.than_chu}|Phi:${tb.cung_phi}|HóaGốc:${hoaLocs}`,
+        `${tb.than_cu}|Chủ:${tb.menh_chu}/${tb.than_chu}|Phi:${tb.cung_phi}`,
+        `HóaGốc: ${hoaGoc}`,
         `Xem:${tb.nam_xem || tb.nam_xem_han}(${tb.tuoi_mu}t,Hạn:${tb.sao_han})|ĐV_HiệnTại:${dvRange}|L.Mệnh:${expandCanChi(luuCung?.can_cung)}|TiểuHạn:${expandCanChi(thCung?.can_cung)}`,
-        `TrụcTamHợp: Thân-Tý-Thìn | Dần-Ngọ-Tuất | Tỵ-Dậu-Sửu | Hợi-Mão-Mùi (NgũHành: K=Kim,M=Mộc,T=Thủy,H=Hỏa,Th=Thổ)`,
+        `L.TứHóa(${tb.nam_xem || tb.nam_xem_han}): ${hoaLuu}`,
+        `TọaĐộSaoLưu: ${saoLuuKey}`,
+        `TrụcTamHợp: Thân-Tý-Thìn | Dần-Ngọ-Tuất | Tỵ-Dậu-Sửu | Hợi-Mão-Mùi`,
     ].join("\n");
 
     const lines = cungList.map((c: any) => {
-        const ten = (c.ten_cung || "").replace("<THÂN>", "[THÂN]");
+        const ten = (c.ten_cung || "").replace("<THÂN>", "[CƯ_THÂN]");
         const meta = [`${expandCanChi(c.can_cung)}[${CHI_EL[c.chi] || ""}]`, ten, "ĐV" + c.dai_van, c.dv_cung, c.luu_cung, c.nguyet_han, "TS:" + c.trang_sinh, ...(c.badges || [])].filter(Boolean).join("|");
-        return `${meta} => ${fmtChinhTinh(c.chinh_tinh)} | +${(c.phu_tinh_tot || []).join(",")} | -${(c.phu_tinh_xau || []).join(",")} | ${extractPhi4(c)}`;
+        const fixTot = (c.phu_tinh_tot || []).filter(isFixedStar).join(",");
+        const fixXau = (c.phu_tinh_xau || []).filter(isFixedStar).join(",");
+        const slStars = [...(c.phu_tinh_tot || []), ...(c.phu_tinh_xau || [])].filter((s) => !isFixedStar(s)).join(",");
+        return `${meta} => ${fmtChinhTinh(c.chinh_tinh)} | +${fixTot} | -${fixXau} | SL:${slStars || "không"} | ${extractPhi4(c)}`;
     });
     return header + "\n" + lines.join("\n");
 }

@@ -14,17 +14,17 @@ export async function POST(req: NextRequest) {
                 send({ type: "step", text: `Nạp lá số, ${history.length} lượt thoại & ${memoryNotes.length} ký ức...` });
 
                 const systemInstruction = [
-                    "Bạn là đại sư Tử Vi Đẩu Số (Nam Phái & Phi Tinh Tứ Hóa). Luận giải chuẩn xác dựa trên dữ liệu lá số, đối chiếu rõ Chính tinh, Ngũ hành, Tam hợp, Xung chiếu, Tuần/Triệt và Tứ Hóa.",
-                    "Trả lời bằng tiếng Việt mạch lạc, chia gạch đầu dòng rõ ràng, dùng **in đậm** cho tên sao/cung quan trọng.",
-                    "Ở DÒNG CUỐI CÙNG, luôn ghi đúng định dạng (không in đậm thẻ): [MEMORY]: <tóm tắt 1 câu dưới 35 từ về ý vừa luận>",
+                    "Bạn là đại sư Tử Vi Đẩu Số (Nam Phái & Phi Tinh Tứ Hóa). Luận giải mạch lạc, sâu sắc, dùng **in đậm** cho tên sao/cung quan trọng.",
+                    "QUY TẮC BẮT BUỘC VỀ ĐỘ CHÍNH XÁC TỌA ĐỘ SAO: Chỉ được nêu tên sao có mặt ĐÚNG trong dòng dữ liệu của cung đó và mục `SL:` / `L.TứHóa` / `TọaĐộSaoLưu`. Tuyệt đối KHÔNG tự suy diễn hay gán nhầm sao của cung khác sang cung đang xét. Phân biệt rõ địa chi 'Thân' (ví dụ Nhâm Thân) với cung '[CƯ_THÂN]' (chỉ cung có nhãn [CƯ_THÂN] mới là cung Cư Thân).",
+                    "Ở DÒNG CUỐI CÙNG, luôn ghi đúng định dạng (không in đậm thẻ): [MEMORY]: <tóm tắt 1 câu dưới 35 từ đúng theo tọa độ sao đã kiểm chứng>",
                 ].join("\n");
 
-                const memBlock = memoryNotes.length > 0 ? "KÝ ỨC TÍCH LŨY:\n" + memoryNotes.slice(-8).map((m: string, i: number) => `${i + 1}. ${m}`).join("\n") : "";
+                const memBlock = memoryNotes.length > 0 ? "KÝ ỨC TÍCH LŨY:\n" + memoryNotes.slice(-6).map((m: string, i: number) => `${i + 1}. ${m}`).join("\n") : "";
                 const histBlock = history.length > 0 ? "HỘI THOẠI GẦN ĐÂY:\n" + history.slice(-6).map((h: any) => `${h.role === "user" ? "Người hỏi" : "Đại sư"}: ${String(h.text || "").slice(0, 420)}`).join("\n") : "";
                 const prompt = ["DỮ LIỆU LÁ SỐ:\n" + compactChart, activeContext, memBlock, histBlock, "CÂU HỎI HIỆN TẠI: " + question].filter(Boolean).join("\n\n");
 
                 const fullText = await runGeminiStreamResilient(
-                    apiKey, prompt, { temperature: 0.45, maxOutputTokens: 4096, systemInstruction },
+                    apiKey, prompt, { temperature: 0.25, maxOutputTokens: 4096, systemInstruction },
                     (s) => send({ type: "step", text: s }),
                     (full) => send({ type: "chunk", text: full.replace(/\*{0,2}\[MEMORY\]:?[\s\S]*$/i, "").trim() })
                 );

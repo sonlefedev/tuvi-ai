@@ -2,7 +2,7 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
 let cache: { models: string[]; exp: number } | null = null;
-const FALLBACK = ["gemini-2.0-flash", "gemini-2.0-flash-lite", "gemini-2.5-flash-lite", "gemini-2.5-flash"];
+const FALLBACK = ["gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-2.0-flash", "gemini-2.0-flash-lite"];
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 export async function getFastGeminiModels(apiKey: string): Promise<string[]> {
@@ -31,8 +31,8 @@ export async function runGeminiStreamResilient(
     for (const m of models.slice(0, 5)) {
         try {
             onStep(`Đang kết nối ${m}...`);
-            const model = genAI.getGenerativeModel({ model: m, systemInstruction: cfg.systemInstruction, generationConfig: { temperature: cfg.temperature ?? 0.45, maxOutputTokens: cfg.maxOutputTokens } });
-            const resStream = await model.generateContentStream(prompt, { signal: AbortSignal.timeout(14000) });
+            const model = genAI.getGenerativeModel({ model: m, systemInstruction: cfg.systemInstruction, generationConfig: { temperature: cfg.temperature ?? 0.35, maxOutputTokens: cfg.maxOutputTokens } });
+            const resStream = await model.generateContentStream(prompt, { signal: AbortSignal.timeout(12000) });
             let full = "";
             for await (const chunk of resStream.stream) {
                 const t = chunk.text();
@@ -41,13 +41,13 @@ export async function runGeminiStreamResilient(
             if (full.trim()) return full;
         } catch {
             try {
-                const model = genAI.getGenerativeModel({ model: m, systemInstruction: cfg.systemInstruction, generationConfig: { temperature: cfg.temperature ?? 0.45, maxOutputTokens: cfg.maxOutputTokens } });
-                const single = await model.generateContent(prompt, { signal: AbortSignal.timeout(10000) });
+                const model = genAI.getGenerativeModel({ model: m, systemInstruction: cfg.systemInstruction, generationConfig: { temperature: cfg.temperature ?? 0.35, maxOutputTokens: cfg.maxOutputTokens } });
+                const single = await model.generateContent(prompt, { signal: AbortSignal.timeout(9000) });
                 const txt = single.response.text();
                 if (txt.trim()) { onProgress?.(txt); return txt; }
             } catch {
                 onStep(`Model ${m} đang quá tải, tự động chuyển model dự phòng...`);
-                await sleep(250);
+                await sleep(200);
             }
         }
     }

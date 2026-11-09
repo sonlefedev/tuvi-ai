@@ -2,36 +2,38 @@
 import { getCurrentUser } from "../auth-store";
 
 const LOCK_TTL_MS = 65000;
+let isPushing = false;
+let lastLocalWriteAt = 0;
 
 function emitSyncStatus(status: "syncing" | "synced" | "error", detail = "") {
-    if (typeof window !== "undefined") {
-        window.dispatchEvent(new CustomEvent("tuvi-sync-status", { detail: { status, detail, ts: Date.now() } }));
-    }
+    if (typeof window !== "undefined") window.dispatchEvent(new CustomEvent("tuvi-sync-status", { detail: { status, detail, ts: Date.now() } }));
 }
 
-export async function pushProfileToCloud(chartKey: string): Promise<boolean> {
+export async function pushProfileToCloud(chartKey: string, formData?: any): Promise<boolean> {
     if (typeof window === "undefined") return false;
     const user = getCurrentUser();
     if (!user || !chartKey) return false;
+    lastLocalWriteAt = Date.now();
+    isPushing = true;
     emitSyncStatus("syncing");
     try {
         const mem = JSON.parse(localStorage.getItem(chartKey) || "{}");
         const lifeMap = JSON.parse(localStorage.getItem(`${chartKey}_lifemap_v1`) || "null");
         const charts = JSON.parse(localStorage.getItem(`${chartKey}_charts_v1`) || "{}");
         const busyLocks = JSON.parse(localStorage.getItem(`${chartKey}_locks_v1`) || "{}");
+        const lastForm = formData || JSON.parse(localStorage.getItem(`${chartKey}_form_v1`) || "null");
+        if (formData) localStorage.setItem(`${chartKey}_form_v1`, JSON.stringify(formData));
         const res = await fetch("/api/profile-sync", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ profileKey: chartKey, userId: user.id, data: { mem, lifeMap, charts, busyLocks } }),
+            body: JSON.stringify({ profileKey: chartKey, userId: user.id, data: { mem, lifeMap, charts, busyLocks, lastForm } }),
         });
         const j = await res.json();
         if (!res.ok || !j.ok) { emitSyncStatus("error", j.error || "Không lưu được Cloud"); return false; }
         emitSyncStatus("synced");
         return true;
-    } catch (e: any) {
-        emitSyncStatus("error", e?.message || "Lỗi mạng");
-        return false;
-    }
+    } catch (e: any) { emitSyncStatus("error", e?.message || "Lỗi mạng"); return false; }
+    finally { isPushing = false; lastLocalWriteAt = Date.now(); }
 }
 
 export async function setOperationLock(chartKey: string, lockId: string, busy: boolean): Promise<void> {
@@ -54,33 +56,33 @@ export function isOperationLockedRemotely(chartKey: string, lockId: string, isLo
     } catch { return false; }
 }
 
-export const setPalaceBusyLock = setOperationLock;
-export const isPalaceLockedRemotely = isOperationLockedRemotely;
-
-export async function pullProfileFromCloud(chartKey: string): Promise<void> {
-    if (typeof window === "undefined") return;
+export async function pullProfileFromCloud(chartKey?: string): Promise<any | null> {
+    if (typeof window === "undefined" || isPushing || Date.now() - lastLocalWriteAt < 2500) return null;
     const user = getCurrentUser();
-    if (!user || !chartKey) return;
+    if (!user) return null;
     try {
-        const res = await fetch(`/api/profile-sync?key=${encodeURIComponent(chartKey)}`, { cache: "no-store" });
-        const { data } = await res.json();
-        if (!data) return;
-        if (data.mem) {
-            const localMem = JSON.parse(localStorage.getItem(chartKey) || "{}");
-            const mergedMsgs = (data.mem.messages?.length || 0) >= (localMem.messages?.length || 0) ? data.mem.messages : localMem.messages;
+        const res = await fetch(`/api/profile-sync?userId=${encodeURIComponent(user.id)}&key=${encodeURIComponent(chartKey || "")}`, { cache: "no-store" });
+        const { rows } = await res.json();
+        if (!Array.isArray(rows) || rows.length === 0) return null;
+        const exact = chartKey ? rows.find((r: any) => r.profile_key === chartKey) : null;
+        const primary = exact || rows[0];
+        const targetKey = chartKey || primary.profile_key;
+        const allReadings = rows.reduce((acc: any, r: any) => ({ ...acc, ...(r.data?.mem?.cungReadings || {}) }), {});
+        const d = primary.data || {};
+        if (targetKey) {
+            const localMem = JSON.parse(localStorage.getItem(targetKey) || "{}");
+            const mergedMsgs = (d.mem?.messages?.length || 0) >= (localMem.messages?.length || 0) ? (d.mem?.messages || []) : localMem.messages;
             const mergedMem = {
-                ...localMem, ...data.mem, messages: mergedMsgs || [],
-                cungReadings: { ...(localMem.cungReadings || {}), ...(data.mem.cungReadings || {}) },
-                memoryNotes: [...new Set([...(localMem.memoryNotes || []), ...(data.mem.memoryNotes || [])])].slice(-12),
+                ...localMem, ...(d.mem || {}), messages: mergedMsgs,
+                cungReadings: { ...(localMem.cungReadings || {}), ...allReadings },
+                memoryNotes: [...new Set([...(localMem.memoryNotes || []), ...(d.mem?.memoryNotes || [])])].slice(-12),
             };
-            localStorage.setItem(chartKey, JSON.stringify(mergedMem));
+            localStorage.setItem(targetKey, JSON.stringify(mergedMem));
+            if (d.lifeMap) localStorage.setItem(`${targetKey}_lifemap_v1`, JSON.stringify(d.lifeMap));
+            if (d.charts) localStorage.setItem(`${targetKey}_charts_v1`, JSON.stringify({ ...JSON.parse(localStorage.getItem(`${targetKey}_charts_v1`) || "{}"), ...d.charts }));
+            localStorage.setItem(`${targetKey}_locks_v1`, JSON.stringify(d.busyLocks || {}));
+            window.dispatchEvent(new Event("tuvi-memory-updated"));
         }
-        if (data.lifeMap) localStorage.setItem(`${chartKey}_lifemap_v1`, JSON.stringify(data.lifeMap));
-        if (data.charts && Object.keys(data.charts).length > 0) {
-            const localCharts = JSON.parse(localStorage.getItem(`${chartKey}_charts_v1`) || "{}");
-            localStorage.setItem(`${chartKey}_charts_v1`, JSON.stringify({ ...localCharts, ...data.charts }));
-        }
-        localStorage.setItem(`${chartKey}_locks_v1`, JSON.stringify(data.busyLocks || {}));
-        window.dispatchEvent(new Event("tuvi-memory-updated"));
-    } catch { }
+        return d.lastForm || null;
+    } catch { return null; }
 }

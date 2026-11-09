@@ -14,15 +14,15 @@ export async function POST(req: NextRequest) {
                 send({ type: "step", text: `Nén toàn bộ 12 cung & 48 đường Phi Hóa của ${hoTen || "đương số"}...` });
 
                 const prompt = [
-                    "Bạn là bậc thầy Tử Vi Đẩu Số (tinh thông Nam Phái & Phi Tinh Tứ Hóa) đồng thời là nhà tham vấn tâm lý – định hướng cuộc đời sâu sắc. Hãy viết một BẢN ĐỒ CUỘC ĐỜI TOÀN DIỆN, SÂU SẮC VÀ GIÀU TÍNH THỰC TIỄN (tổng độ dài khoảng 6.500 - 8.000 ký tự tiếng Việt) cho đương số có lá số dưới đây.",
+                    "Bạn là bậc thầy Tử Vi Đẩu Số (Nam Phái & Phi Tinh Tứ Hóa). Hãy viết một BẢN ĐỒ CUỘC ĐỜI TOÀN DIỆN, SÂU SẮC VÀ GIÀU TÍNH THỰC TIỄN (khoảng 4.000 - 5.200 ký tự tiếng Việt) cho đương số có lá số dưới đây.",
                     "DỮ LIỆU TOÀN LÁ SỐ:\n" + compactChart,
-                    "Hãy viết thật kỹ, dẫn chứng rõ các bộ sao trên lá số và trình bày đúng 7 thẻ đánh dấu sau (mỗi chương viết 3-4 đoạn văn sâu sắc ~1.000-1.300 ký tự, không dùng markdown codeblock):\n[M1]\nCHƯƠNG I - CỐT CÁCH BẢN MỆNH & ĐỊNH VỊ CON NGƯỜI\n[M2]\nCHƯƠNG II - CON ĐƯỜNG CÔNG DANH, SỰ NGHIỆP & TÀI LỘC\n[M3]\nCHƯƠNG III - TÌNH DUYÊN, HÔN NHÂN, GIA ĐẠO & NHÂN DUYÊN\n[M4]\nCHƯƠNG IV - SỨC KHỎE THỂ CHẤT & BÌNH AN NỘI TÂM\n[M5]\nCHƯƠNG V - NHỮNG ĐIỀU NÊN TRÁNH LÀM ĐỂ TÂM ĐƯỢC AN NHIÊN\n[M6]\nCHƯƠNG VI - KIM CHỈ NAM HÀNH ĐỘNG ĐỂ THÀNH CÔNG, ÊM ẤM & ĐỦ ĐẦY\n[MEM]\nTóm tắt 1 câu dưới 40 từ đúc kết cốt lõi toàn lá số.",
+                    "Dẫn chứng rõ các bộ sao trên lá số và trình bày đúng 7 thẻ đánh dấu sau (mỗi chương viết 2-3 đoạn văn sâu sắc ~700-850 ký tự, không dùng markdown codeblock):\n[M1]\nCHƯƠNG I - CỐT CÁCH BẢN MỆNH & ĐỊNH VỊ CON NGƯỜI\n[M2]\nCHƯƠNG II - CON ĐƯỜNG CÔNG DANH, SỰ NGHIỆP & TÀI LỘC\n[M3]\nCHƯƠNG III - TÌNH DUYÊN, HÔN NHÂN, GIA ĐẠO & NHÂN DUYÊN\n[M4]\nCHƯƠNG IV - SỨC KHỎE THỂ CHẤT & BÌNH AN NỘI TÂM\n[M5]\nCHƯƠNG V - NHỮNG ĐIỀU NÊN TRÁNH LÀM ĐỂ TÂM ĐƯỢC AN NHIÊN\n[M6]\nCHƯƠNG VI - KIM CHỈ NAM HÀNH ĐỘNG ĐỂ THÀNH CÔNG, ÊM ẤM & ĐỦ ĐẦY\n[MEM]\nTóm tắt 1 câu dưới 40 từ đúc kết cốt lõi toàn lá số.",
                 ].join("\n\n");
 
                 const fullText = await runGeminiStreamResilient(
-                    apiKey, prompt, { temperature: 0.45, maxOutputTokens: 8192 },
+                    apiKey, prompt, { temperature: 0.45, maxOutputTokens: 4600 },
                     (s) => send({ type: "step", text: s }),
-                    (full) => send({ type: "chunk", text: `Đang viết Bản Đồ Cuộc Đời (${full.length.toLocaleString("vi-VN")} / ~7.000 ký tự)...` })
+                    (full) => send({ type: "chunk", text: `Đang viết Bản Đồ Cuộc Đời (${full.length.toLocaleString("vi-VN")} / ~4.800 ký tự)...` })
                 );
 
                 const getPart = (tag: string, next: string[]) => {

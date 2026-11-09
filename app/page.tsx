@@ -77,7 +77,7 @@ export default function Home() {
       <div id="sec-form" className="w-full"><InputForm onGenerate={(f) => handleGenerate(f, false)} loading={loading} /></div>
       {result && (
         <div className="w-full max-w-5xl space-y-6 mt-4">
-          <div id="sec-board"><LaSoBanCo cungList={result.cung_12} thienBan={result.thien_ban} selectedChi={selectedCung?.chi || ""} onSelectCung={handleSelectCung} onInspectStar={(name, cung) => setInspectedStar({ name, cung })} /></div>
+          <div id="sec-board"><LaSoBanCo cungList={result.cung_12} thienBan={result.thien_ban} selectedChi={selectedCung?.chi || ""} onSelectCung={handleSelectCung} onInspectStar={(name: string, cung: string) => setInspectedStar({ name, cung })} /></div>
           <MonthlyTimelinePanel cungList={result.cung_12} thienBan={result.thien_ban} namXem={namXem} onSelectCung={handleSelectCung} onAskAi={setAiQueuedPrompt} />
           <div id="sec-lifemap"><LifeMapBookPanel result={result} /></div>
           {selectedCung && <div id="sec-cung"><CungDetail cung={selectedCung} cungList={result.cung_12} thienBan={result.thien_ban} tongQuan={result.tong_quan} namXem={namXem} /></div>}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import AuthBarAndModal from "@/components/AuthBarAndModal";
 import AppIntroCard from "@/components/AppIntroCard";
 import InputForm from "@/components/InputForm";
@@ -11,7 +11,7 @@ import TuviChartsPanel from "@/components/TuviChartsPanel";
 import AiLuanPanel from "@/components/AiLuanPanel";
 import SideQuickNav from "@/components/SideQuickNav";
 import { HoroscopeResult, CungItem } from "@/lib/types";
-import { saveChartToAccount, SavedChartEntry } from "@/lib/auth-store";
+import { getCurrentUser, saveChartToAccount, SavedChartEntry } from "@/lib/auth-store";
 import { setBaseTabTitle } from "@/lib/tab-notify";
 import { buildChartKey } from "@/lib/ai/tuvi-memory-store";
 import { pullProfileFromCloud } from "@/lib/ai/cloud-profile-sync";
@@ -30,11 +30,11 @@ export default function Home() {
       const res = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(formData) });
       const data = await res.json();
       if (data.success) {
+        await pullProfileFromCloud(buildChartKey(data.data.thien_ban));
         setResult(data.data);
         setSelectedCung(data.data.cung_12[0]);
         setBaseTabTitle(data.data.thien_ban?.ho_ten, formData.namXem);
         saveChartToAccount(formData);
-        pullProfileFromCloud(buildChartKey(data.data.thien_ban));
       } else {
         alert(data.error || "Lỗi");
       }
@@ -44,6 +44,18 @@ export default function Home() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    const u = getCurrentUser();
+    if (!result && u?.savedCharts?.length) handleGenerate(u.savedCharts[0]);
+  }, []);
+
+  useEffect(() => {
+    if (!result) return;
+    const ck = buildChartKey(result.thien_ban);
+    const id = setInterval(() => { if (!document.hidden && getCurrentUser()) pullProfileFromCloud(ck); }, 2500);
+    return () => clearInterval(id);
+  }, [result]);
 
   const handleSelectCung = (c: CungItem) => {
     setSelectedCung(c);
@@ -60,13 +72,10 @@ export default function Home() {
           Đã chọn cung {toastCung} • Xem luận giải ↓
         </button>
       )}
-
       <AuthBarAndModal onLoadSavedChart={(c: SavedChartEntry) => handleGenerate(c)} />
       <SideQuickNav hasResult={Boolean(result)} cungList={result?.cung_12 || []} selectedChi={selectedCung?.chi || ""} onSelectCung={handleSelectCung} />
-
       <div id="sec-intro" className="w-full"><AppIntroCard hasResult={Boolean(result)} /></div>
       <div id="sec-form" className="w-full"><InputForm onGenerate={handleGenerate} loading={loading} /></div>
-
       {result && (
         <div className="w-full max-w-5xl space-y-6 mt-4">
           <div id="sec-board"><LaSoBanCo cungList={result.cung_12} thienBan={result.thien_ban} selectedChi={selectedCung?.chi || ""} onSelectCung={handleSelectCung} /></div>

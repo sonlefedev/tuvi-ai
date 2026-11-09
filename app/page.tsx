@@ -34,10 +34,6 @@ export default function Home() {
         setSelectedCung(data.data.cung_12[0]);
         setBaseTabTitle(data.data.thien_ban?.ho_ten, formData.namXem);
         saveChartToAccount(formData);
-        setResult(data.data);
-        setSelectedCung(data.data.cung_12[0]);
-        setBaseTabTitle(data.data.thien_ban?.ho_ten, formData.namXem);
-        saveChartToAccount(formData);
         pullProfileFromCloud(buildChartKey(data.data.thien_ban));
       } else {
         alert(data.error || "Lỗi");
@@ -77,7 +73,7 @@ export default function Home() {
           <div id="sec-lifemap"><LifeMapBookPanel result={result} /></div>
           {selectedCung && <div id="sec-cung"><CungDetail cung={selectedCung} cungList={result.cung_12} thienBan={result.thien_ban} tongQuan={result.tong_quan} namXem={namXem} /></div>}
           <div id="sec-chart"><TuviChartsPanel result={result} /></div>
-          <AiLuanPanel result={result} />
+          <AiLuanPanel result={result} selectedCung={selectedCung} />
         </div>
       )}
     </main>

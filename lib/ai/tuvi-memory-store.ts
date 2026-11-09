@@ -7,11 +7,30 @@ export interface CungAiReading { chinhTinhBanCung: string; phuTinhTuongTac: stri
 export interface ChartMemoryState { chartKey: string; compactChart: string; memoryNotes: string[]; messages: ChatTurn[]; cungReadings: Record<string, CungAiReading>; }
 
 const PREFIX = "tuvi_ai_profile_v2_";
+const CUNG_KEYWORDS: Record<string, string> = { "mệnh": "MỆNH", "phụ mẫu": "PHỤ MẪU", "phúc đức": "PHÚC ĐỨC", "điền trạch": "ĐIỀN TRẠCH", "quan lộc": "QUAN LỘC", "sự nghiệp": "QUAN LỘC", "nô bộc": "NÔ BỘC", "thiên di": "THIÊN DI", "tật ách": "TẬT ÁCH", "sức khỏe": "TẬT ÁCH", "tài bạch": "TÀI BẠCH", "tài chính": "TÀI BẠCH", "tử tức": "TỬ TỨC", "con cái": "TỬ TỨC", "phu thê": "PHU THÊ", "tình duyên": "PHU THÊ", "hôn nhân": "PHU THÊ", "huynh đệ": "HUYNH ĐỆ" };
 
 export function buildChartKey(tb: any): string {
     const uid = getCurrentUser()?.id || "guest";
-    const raw = [tb?.ho_ten, tb?.nam_sinh, tb?.thang_sinh, tb?.ngay_sinh, tb?.gio_sinh, tb?.gioi_tinh].join("_");
+    const nx = tb?.nam_xem_han || tb?.nam_xem || "";
+    const raw = [tb?.ho_ten, tb?.nam_sinh, tb?.thang_sinh, tb?.ngay_sinh, tb?.gio_sinh, tb?.gioi_tinh, nx].join("_");
     return `${PREFIX}${uid}_${raw.toLowerCase().replace(/[^a-z0-9]/g, "")}`;
+}
+
+export function buildChatContext(state: ChartMemoryState, selectedCung?: { chi: string; ten_cung: string } | null, question = ""): string {
+    const parts: string[] = [];
+    if (selectedCung) {
+        const cleanName = selectedCung.ten_cung.replace("<THÂN>", "[THÂN]").trim();
+        parts.push(`CUNG ĐANG MỞ TRÊN BÀN CỜ: ${cleanName} (${selectedCung.chi})`);
+        const r = state.cungReadings?.[selectedCung.chi];
+        if (r?.ducKetLoiKhuyen) parts.push(`ĐÚC KẾT ĐÃ LUẬN CỦA CUNG ${cleanName}: ${r.ducKetLoiKhuyen.slice(0, 320)}`);
+    }
+    const qLow = question.toLowerCase();
+    const matched = Object.entries(CUNG_KEYWORDS).find(([kw]) => qLow.includes(kw))?.[1];
+    if (matched && (!selectedCung || !selectedCung.ten_cung.includes(matched))) {
+        const entry = Object.entries(state.cungReadings || {}).find(([, v]) => v?.ducKetLoiKhuyen?.toLowerCase().includes(matched.toLowerCase()));
+        if (entry?.[1]?.ducKetLoiKhuyen) parts.push(`ĐÚC KẾT LIÊN QUAN (${matched}): ${entry[1].ducKetLoiKhuyen.slice(0, 280)}`);
+    }
+    return parts.join("\n");
 }
 
 export function loadChartMemory(chartKey: string, compactChart: string): ChartMemoryState {

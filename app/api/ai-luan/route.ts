@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
                 const prompt = ["DỮ LIỆU LÁ SỐ:\n" + compactChart, activeContext, memBlock, histBlock, "CÂU HỎI HIỆN TẠI: " + question].filter(Boolean).join("\n\n");
 
                 const fullText = await runGeminiStreamResilient(
-                    apiKey, prompt, { task, temperature: 0.25, maxOutputTokens: 4096, systemInstruction },
+                    apiKey, prompt, { task, temperature: 0.25, maxOutputTokens: 2200, systemInstruction },
                     (s) => send({ type: "step", text: s }),
                     (full) => send({ type: "chunk", text: full.replace(/\*{0,2}\[MEMORY\]:?[\s\S]*$/i, "").trim() })
                 );

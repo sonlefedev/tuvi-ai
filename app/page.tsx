@@ -84,7 +84,7 @@ export default function Home() {
           <div id="sec-chart"><TuviChartsPanel result={result} /></div>
           <DestinyJournalPanel thienBan={result.thien_ban} />
           <SynastryPanel resultA={result} />
-          {lastForm && <BirthHourRectifyPanel baseForm={lastForm} onApplyHour={(h) => handleGenerate({ ...lastForm, gio: h }, false)} />}
+          {lastForm && <BirthHourRectifyPanel baseForm={lastForm} thienBan={result.thien_ban} onApplyHour={(h) => handleGenerate({ ...lastForm, gio: h }, false)} />}
           <AiLuanPanel result={result} selectedCung={selectedCung} externalPrompt={aiQueuedPrompt} onConsumedPrompt={() => setAiQueuedPrompt("")} />
         </div>
       )}

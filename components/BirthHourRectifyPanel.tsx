@@ -1,19 +1,32 @@
 // components/BirthHourRectifyPanel.tsx
 "use client";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { CheckCircle2, Clock, Loader2, Sparkles } from "lucide-react";
+import { ThienBanData } from "@/lib/types";
 import { compressLaSoToText } from "@/lib/ai/compress-laso";
+import { buildChartKey } from "@/lib/ai/tuvi-memory-store";
+import { pushProfileToCloud } from "@/lib/ai/cloud-profile-sync";
 import { streamAiEndpoint } from "@/lib/ai/stream-client";
 import FormattedAiText from "./FormattedAiText";
 
 const HOURS = ["Tý (23h-01h)", "Sửu (01h-03h)", "Dần (03h-05h)", "Mão (05h-07h)", "Thìn (07h-09h)", "Tỵ (09h-11h)", "Ngọ (11h-13h)", "Mùi (13h-15h)", "Thân (15h-17h)", "Dậu (17h-19h)", "Tuất (19h-21h)", "Hợi (21h-23h)"];
 
-export default function BirthHourRectifyPanel({ baseForm, onApplyHour }: { baseForm: any; onApplyHour: (hour: string) => void }) {
+export default function BirthHourRectifyPanel({ baseForm, thienBan, onApplyHour }: { baseForm: any; thienBan: ThienBanData; onApplyHour: (hour: string) => void }) {
     const [selectedHours, setSelectedHours] = useState<string[]>(["Tỵ (09h-11h)", "Ngọ (11h-13h)", "Mùi (13h-15h)"]);
     const [clues, setClues] = useState("");
     const [loading, setLoading] = useState(false);
     const [step, setStep] = useState("");
     const [reply, setReply] = useState("");
+
+    const chartKey = buildChartKey(thienBan);
+    const cacheKey = `${chartKey}_rectify_v1`;
+
+    useEffect(() => {
+        const sync = () => { try { const c = localStorage.getItem(cacheKey); if (c && !loading) setReply(c); } catch { } };
+        sync();
+        window.addEventListener("tuvi-memory-updated", sync);
+        return () => window.removeEventListener("tuvi-memory-updated", sync);
+    }, [cacheKey, loading]);
 
     const toggleHour = (h: string) => {
         setSelectedHours((prev) => prev.includes(h) ? prev.filter((x) => x !== h) : prev.length < 3 ? [...prev, h] : [...prev.slice(1), h]);
@@ -30,7 +43,7 @@ export default function BirthHourRectifyPanel({ baseForm, onApplyHour }: { baseF
                 return { hour: h, compact: compressLaSoToText(j.data.thien_ban, j.data.cung_12) };
             }));
             const res = await streamAiEndpoint("/api/ai-rectify", { candidates, clues: clues.trim() }, setStep, setReply);
-            if (res?.reply) setReply(res.reply);
+            if (res?.reply) { setReply(res.reply); localStorage.setItem(cacheKey, res.reply); await pushProfileToCloud(chartKey); }
         } catch (err: any) { alert(err?.message || "Lỗi định giờ sinh"); }
         finally { setLoading(false); }
     };

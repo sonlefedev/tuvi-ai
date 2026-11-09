@@ -9,9 +9,9 @@ import { streamAiEndpoint } from "@/lib/ai/stream-client";
 import { notifyTabStatus } from "@/lib/tab-notify";
 import { useFloatingBox } from "@/lib/use-floating-box";
 import AiProgressLog from "./AiProgressLog";
+import FormattedAiText from "./FormattedAiText";
 
 const QUICK_PROMPTS = ["Luận cung đang chọn", "Tổng quan Mệnh – Thân", "Sự nghiệp & Tài lộc", "Vận hạn năm nay"];
-const renderBold = (t: string) => t.split(/(\*\*.*?\*\*)/g).map((p, i) => p.startsWith("**") && p.endsWith("**") ? <b key={i} className="text-amber-300 font-bold">{p.slice(2, -2)}</b> : <span key={i}>{p}</span>);
 
 export default function AiLuanPanel({ result, selectedCung, externalPrompt, onConsumedPrompt }: { result: HoroscopeResult; selectedCung?: CungItem | null; externalPrompt?: string; onConsumedPrompt?: () => void }) {
     const [open, setOpen] = useState(false);
@@ -84,8 +84,8 @@ export default function AiLuanPanel({ result, selectedCung, externalPrompt, onCo
                         {store.memoryNotes.length > 0 && <div className="p-2 rounded-xl bg-amber-500/5 border border-amber-500/20 text-[11px] text-amber-200/90 space-y-0.5"><div className="font-bold text-amber-400 flex items-center gap-1"><BrainCircuit className="w-3 h-3" /> Ký ức AI đang giữ:</div>{store.memoryNotes.slice(-3).map((m, i) => <div key={i} className="truncate">• {m}</div>)}</div>}
                         <div className="flex flex-wrap gap-1">{QUICK_PROMPTS.map((p, i) => <button key={i} type="button" disabled={loading} onClick={() => askAi(p)} className="px-2 py-1 rounded-lg bg-purple-500/15 hover:bg-purple-500/25 border border-purple-500/30 text-purple-200 text-[11px] disabled:opacity-50 cursor-pointer">{p}</button>)}</div>
                         <AiProgressLog steps={steps} active={loading} />
-                        {store.messages.map((m, i) => <div key={i} className={`p-3 rounded-xl whitespace-pre-line ${m.role === "user" ? "bg-slate-800 text-amber-200 ml-6 border border-slate-700" : "bg-slate-950 text-slate-200 mr-2 border border-purple-500/25"}`}><b className="block text-[10px] uppercase mb-1 opacity-60">{m.role === "user" ? "Bạn" : "Đại sư AI"}</b>{renderBold(m.text)}</div>)}
-                        {streamingText && <div className="p-3 rounded-xl whitespace-pre-line bg-slate-950 text-slate-200 mr-2 border border-purple-400/50"><b className="block text-[10px] uppercase mb-1 text-purple-400">Đang trả lời...</b>{renderBold(streamingText)}</div>}
+                        {store.messages.map((m, i) => <div key={i} className={`p-3 rounded-xl whitespace-pre-line ${m.role === "user" ? "bg-slate-800 text-amber-200 ml-6 border border-slate-700" : "bg-slate-950 text-slate-200 mr-2 border border-purple-500/25"}`}><b className="block text-[10px] uppercase mb-1 opacity-60">{m.role === "user" ? "Bạn" : "Đại sư AI"}</b><FormattedAiText text={m.text} /></div>)}
+                        {streamingText && <div className="p-3 rounded-xl whitespace-pre-line bg-slate-950 text-slate-200 mr-2 border border-purple-400/50"><b className="block text-[10px] uppercase mb-1 text-purple-400">Đang trả lời...</b><FormattedAiText text={streamingText} /></div>}
                     </div>
                     <form onSubmit={(e) => { e.preventDefault(); askAi(question); }} className="p-2.5 bg-slate-950/90 border-t border-slate-800 flex gap-1.5 text-xs">
                         <input value={question} onChange={(e) => setQuestion(e.target.value)} placeholder={activeLabel ? `Hỏi về cung ${activeLabel} hoặc lá số...` : "Hỏi bất kỳ điều gì về lá số..."} className="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-slate-100 placeholder:text-slate-500" />

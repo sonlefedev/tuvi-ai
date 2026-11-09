@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { CungAiReading } from "@/lib/ai/cung-ai-store";
 import { BookOpen, Maximize2, Minimize2 } from "lucide-react";
+import FormattedAiText from "./FormattedAiText";
 
 const TABS: { key: keyof CungAiReading; label: string; title: string }[] = [
     { key: "chinhTinhBanCung", label: "1. Chính Tinh", title: "Chính Tinh & Thế Đứng Tại Bản Cung" },
@@ -59,7 +60,7 @@ export default function CungReadingTabs({ reading, cungName }: { reading: CungAi
 
                     <div className="p-4 rounded-xl bg-slate-950/75 border border-slate-800/90 space-y-2">
                         <h6 className="font-bold text-sm text-purple-300">{current.title}</h6>
-                        <p className="text-[12.5px] text-slate-200 leading-[1.7] whitespace-pre-line">{reading[current.key]}</p>
+                        <FormattedAiText text={reading[current.key]} />
                     </div>
                 </>
             ) : (
@@ -67,7 +68,7 @@ export default function CungReadingTabs({ reading, cungName }: { reading: CungAi
                     {TABS.map((t) => (
                         <div key={t.key} className="p-3.5 rounded-xl bg-slate-950/75 border border-slate-800 space-y-1.5">
                             <h6 className="font-bold text-xs text-amber-300 uppercase">{t.title}</h6>
-                            <p className="text-[12.5px] text-slate-200 leading-[1.7] whitespace-pre-line">{reading[t.key]}</p>
+                            <FormattedAiText text={reading[t.key]} />
                         </div>
                     ))}
                 </div>

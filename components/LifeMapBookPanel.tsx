@@ -9,6 +9,7 @@ import { downloadLifeMapBook, LifeMapData } from "@/lib/export-lifemap";
 import { streamAiEndpoint } from "@/lib/ai/stream-client";
 import { notifyTabStatus } from "@/lib/tab-notify";
 import AiProgressLog from "./AiProgressLog";
+import FormattedAiText from "./FormattedAiText";
 import { isOperationLockedRemotely, setOperationLock } from "@/lib/ai/cloud-profile-sync";
 
 const CHAPTERS: { key: keyof LifeMapData; tab: string; title: string }[] = [
@@ -82,9 +83,9 @@ export default function LifeMapBookPanel({ result }: { result: HoroscopeResult }
                     </div>
                     {!readAll ? (
                         <><div className="flex flex-wrap gap-1.5">{CHAPTERS.map((c) => <button key={c.key} type="button" onClick={() => setActive(c.key)} className={`px-3 py-1.5 rounded-xl text-[11.5px] font-bold transition cursor-pointer ${active === c.key ? "bg-amber-500/25 text-amber-200 border border-amber-400/60" : "bg-slate-950/80 text-slate-400 hover:text-slate-200 border border-slate-800"}`}>{c.tab}</button>)}</div>
-                        <div className="p-4 rounded-xl bg-slate-950/80 border border-slate-800 space-y-2"><h4 className="font-bold text-sm text-amber-300">{cur.title}</h4><p className="text-[13px] text-slate-200 leading-[1.75] whitespace-pre-line">{data[cur.key]}</p></div></>
+                        <div className="p-4 rounded-xl bg-slate-950/80 border border-slate-800 space-y-2"><h4 className="font-bold text-sm text-amber-300">{cur.title}</h4><FormattedAiText text={data[cur.key]} /></div></>
                     ) : (
-                        <div className="space-y-3 max-h-[560px] overflow-y-auto pr-1">{CHAPTERS.map((c) => <div key={c.key} className="p-4 rounded-xl bg-slate-950/80 border border-slate-800 space-y-1.5"><h4 className="font-bold text-sm text-amber-300">{c.title}</h4><p className="text-[13px] text-slate-200 leading-[1.75] whitespace-pre-line">{data[c.key]}</p></div>)}</div>
+                        <div className="space-y-3 max-h-[560px] overflow-y-auto pr-1">{CHAPTERS.map((c) => <div key={c.key} className="p-4 rounded-xl bg-slate-950/80 border border-slate-800 space-y-1.5"><h4 className="font-bold text-sm text-amber-300">{c.title}</h4><FormattedAiText text={data[c.key]} /></div>)}</div>
                     )}
                 </div>
             ) : <div className="p-5 text-center rounded-xl bg-slate-950/60 border border-dashed border-amber-500/30 text-slate-300">Bấm nút <b className="text-amber-300">“Lập Bản Đồ Cuộc Đời (~7.000 chữ)”</b> ở góc trên để AI tổng hợp toàn bộ 12 cung thành cuốn cẩm nang 6 chương chi tiết.</div>}

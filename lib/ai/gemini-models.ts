@@ -35,8 +35,7 @@ function rankModelsForTask(all: string[], task: AiTaskKind): string[] {
     const pro = pick(PRO_ORDER), flash = pick(FLASH_ORDER), lite = pick(LITE_ORDER);
     const primary =
         task === "chart_json" || task === "chat_quick" ? [...lite, ...flash, ...pro] :
-        task === "lifemap_book" || task === "chat_deep" ? [...pro, ...flash, ...lite] :
-        [...flash, ...pro, ...lite];
+        [...flash, ...lite, ...pro];
     return [...new Set([...primary, ...all])];
 }
 

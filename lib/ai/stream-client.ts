@@ -19,12 +19,13 @@ export async function streamAiEndpoint(
     const decoder = new TextDecoder();
     let buffer = "";
     let finalData: any = null;
+    let lastChunk = "";
 
     const handleLine = (line: string) => {
         if (!line.trim()) return;
         const evt = JSON.parse(line);
         if (evt.type === "step") onStep(evt.text);
-        else if (evt.type === "chunk" && onChunk) onChunk(evt.text);
+        else if (evt.type === "chunk") { lastChunk = evt.text || lastChunk; onChunk?.(evt.text); }
         else if (evt.type === "done") finalData = evt.data;
         else if (evt.type === "error") throw new Error(evt.error);
     };
@@ -38,6 +39,7 @@ export async function streamAiEndpoint(
         for (const line of lines) handleLine(line);
     }
     if (buffer.trim()) handleLine(buffer);
+    if (!finalData && lastChunk.length >= 350) return { reply: lastChunk, answer: lastChunk, partial: true };
     if (!finalData) throw new Error("Kết nối AI bị ngắt giữa chừng do mạng chậm hoặc quá tải, vui lòng bấm lại!");
     return finalData;
 }

@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
                 ].join("\n\n");
 
                 const reply = await runGeminiStreamResilient(
-                    apiKey, prompt, { task: "chat_deep", temperature: 0.25, maxOutputTokens: 2800 },
+                    apiKey, prompt, { task: "cung_deep", temperature: 0.25, maxOutputTokens: 1800 },
                     (s) => send({ type: "step", text: s }),
                     (full) => send({ type: "chunk", text: full })
                 );

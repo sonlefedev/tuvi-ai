@@ -22,12 +22,13 @@ export async function pushProfileToCloud(chartKey: string, formData?: any): Prom
         const charts = JSON.parse(localStorage.getItem(`${chartKey}_charts_v1`) || "{}");
         const busyLocks = JSON.parse(localStorage.getItem(`${chartKey}_locks_v1`) || "{}");
         const journal = JSON.parse(localStorage.getItem(`${chartKey}_journal_v1`) || "[]");
+        const synastry = localStorage.getItem(`${chartKey}_synastry_v1`) || "";
         const lastForm = formData || JSON.parse(localStorage.getItem(`${chartKey}_form_v1`) || "null");
         if (formData) localStorage.setItem(`${chartKey}_form_v1`, JSON.stringify(formData));
         const res = await fetch("/api/profile-sync", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ profileKey: chartKey, userId: user.id, data: { mem, lifeMap, charts, busyLocks, lastForm, journal } }),
+            body: JSON.stringify({ profileKey: chartKey, userId: user.id, data: { mem, lifeMap, charts, busyLocks, lastForm, journal, synastry } }),
         });
         const j = await res.json();
         if (!res.ok || !j.ok) { emitSyncStatus("error", j.error || "Không lưu được Cloud"); return false; }
@@ -81,6 +82,7 @@ export async function pullProfileFromCloud(chartKey?: string): Promise<any | nul
             localStorage.setItem(targetKey, JSON.stringify(mergedMem));
             if (d.lifeMap) localStorage.setItem(`${targetKey}_lifemap_v1`, JSON.stringify(d.lifeMap));
             if (Array.isArray(d.journal)) localStorage.setItem(`${targetKey}_journal_v1`, JSON.stringify(d.journal));
+            if (d.synastry) localStorage.setItem(`${targetKey}_synastry_v1`, d.synastry);
             if (d.charts) localStorage.setItem(`${targetKey}_charts_v1`, JSON.stringify({ ...JSON.parse(localStorage.getItem(`${targetKey}_charts_v1`) || "{}"), ...d.charts }));
             localStorage.setItem(`${targetKey}_locks_v1`, JSON.stringify(d.busyLocks || {}));
             window.dispatchEvent(new Event("tuvi-memory-updated"));

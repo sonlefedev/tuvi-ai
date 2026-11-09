@@ -14,14 +14,14 @@ export async function POST(req: NextRequest) {
                 send({ type: "step", text: "Đang đối chiếu Ngũ hành, Phu Thê & Tứ Hóa chéo giữa 2 lá số..." });
 
                 const prompt = [
-                    `Bạn là đại sư Tử Vi Đẩu Số. Hãy luận giải HỢP LÁ SỐ ĐÔI (${relation}) giữa Đương số A và Đương số B dưới đây (mạch lạc, thực tế, dùng **in đậm** cho tên sao/cung):`,
+                    `Bạn là đại sư Tử Vi Đẩu Số. Hãy luận giải HỢP LÁ SỐ ĐÔI (${relation}) giữa Đương số A và Đương số B thật súc tích, chuẩn xác (~1.600 - 2.100 ký tự, dùng **in đậm** cho tên sao/cung, đối chiếu đúng tọa độ sao trên 2 lá số):`,
                     "LÁ SỐ A:\n" + chartA,
                     "LÁ SỐ B:\n" + chartB,
-                    "Trình bày 4 mục rõ ràng:\n1. **Tương hợp Bản Mệnh, Cục & Cung Phi**\n2. **Đối chiếu Cung Mệnh – Thân & Phu Thê / Nô Bộc**\n3. **Tương tác Phi Tinh Tứ Hóa chéo (ai mang Lộc/Quyền/Khoa/Kỵ tới cho ai)**\n4. **Điểm sáng gắn kết & Lời khuyên dung hòa thực tế**",
+                    "Trình bày 4 mục ngắn gọn, đi thẳng vào trọng tâm:\n### 1. Tương hợp Bản Mệnh, Cục & Cung Phi\n### 2. Đối chiếu Mệnh – Thân & Phu Thê / Nô Bộc\n### 3. Tương tác Phi Tinh Tứ Hóa chéo (Lộc/Quyền/Khoa/Kỵ)\n### 4. Điểm sáng gắn kết & Lời khuyên dung hòa",
                 ].join("\n\n");
 
                 const reply = await runGeminiStreamResilient(
-                    apiKey, prompt, { task: "chat_deep", temperature: 0.3, maxOutputTokens: 3200 },
+                    apiKey, prompt, { task: "cung_deep", temperature: 0.25, maxOutputTokens: 2000 },
                     (s) => send({ type: "step", text: s }),
                     (full) => send({ type: "chunk", text: full })
                 );

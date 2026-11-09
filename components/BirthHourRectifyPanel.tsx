@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { CheckCircle2, Clock, Loader2, Sparkles } from "lucide-react";
 import { compressLaSoToText } from "@/lib/ai/compress-laso";
 import { streamAiEndpoint } from "@/lib/ai/stream-client";
+import FormattedAiText from "./FormattedAiText";
 
 const HOURS = ["Tý (23h-01h)", "Sửu (01h-03h)", "Dần (03h-05h)", "Mão (05h-07h)", "Thìn (07h-09h)", "Tỵ (09h-11h)", "Ngọ (11h-13h)", "Mùi (13h-15h)", "Thân (15h-17h)", "Dậu (17h-19h)", "Tuất (19h-21h)", "Hợi (21h-23h)"];
 
@@ -62,7 +63,7 @@ export default function BirthHourRectifyPanel({ baseForm, onApplyHour }: { baseF
                     ))}
                 </div>
             </form>
-            {reply && <div className="p-4 rounded-xl bg-slate-950/80 border border-cyan-500/25 leading-relaxed whitespace-pre-line">{reply}</div>}
+            {reply && <div className="p-4 rounded-xl bg-slate-950/80 border border-cyan-500/25"><FormattedAiText text={reply} /></div>}
         </section>
     );
 }

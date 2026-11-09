@@ -57,14 +57,14 @@ export default function AiLuanPanel({ result, selectedCung }: { result: Horoscop
 
     return (
         <>
-            <button type="button" onClick={() => setOpen(!open)} className="fixed bottom-4 left-4 xl:left-auto xl:right-6 xl:bottom-6 z-50 flex items-center gap-2 px-4 py-2.5 rounded-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-bold text-xs shadow-2xl border border-purple-300/30 cursor-pointer">
+            <button type="button" onClick={() => setOpen(!open)} className="fixed bottom-4 left-4 sm:bottom-6 sm:left-6 z-50 flex items-center gap-2 px-4 py-2.5 rounded-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-bold text-xs shadow-2xl border border-purple-300/30 cursor-pointer">
                 {open ? <X className="w-4 h-4" /> : <MessageSquareText className="w-4 h-4" />}
                 <span>{open ? "Đóng Chat AI" : "Hỏi Trợ Lý AI"}</span>
                 {!open && store.memoryNotes.length > 0 && <span className="px-1.5 py-0.5 rounded-full bg-amber-400 text-slate-950 text-[10px] font-black">{store.memoryNotes.length}</span>}
             </button>
 
             {open && (
-                <div onPointerMove={box.onPointerMove} onPointerUp={box.endAction} style={{ transform: `translate(${box.rect.x}px, ${box.rect.y}px)`, width: `min(94vw, ${box.rect.w}px)`, height: `min(82vh, ${box.rect.h}px)` }} className="fixed bottom-16 right-3 sm:right-6 z-50 bg-slate-900/95 border border-purple-500/45 rounded-2xl shadow-2xl backdrop-blur-md flex flex-col overflow-hidden text-slate-200">
+                <div onPointerMove={box.onPointerMove} onPointerUp={box.endAction} style={{ transform: `translate(${box.rect.x}px, ${box.rect.y}px)`, width: `min(94vw, ${box.rect.w}px)`, height: `min(82vh, ${box.rect.h}px)` }} className="fixed bottom-16 left-3 sm:bottom-20 sm:left-6 z-50 bg-slate-900/95 border border-purple-500/45 rounded-2xl shadow-2xl backdrop-blur-md flex flex-col overflow-hidden text-slate-200">
                     <div onPointerDown={(e) => box.startAction(e, "l")} className="absolute left-0 top-2 bottom-2 w-1.5 cursor-ew-resize z-20" />
                     <div onPointerDown={(e) => box.startAction(e, "r")} className="absolute right-0 top-2 bottom-2 w-1.5 cursor-ew-resize z-20" />
                     <div onPointerDown={(e) => box.startAction(e, "b")} className="absolute bottom-0 left-2 right-2 h-1.5 cursor-ns-resize z-20" />

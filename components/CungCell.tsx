@@ -53,7 +53,7 @@ export default function CungCell({ cung, status, isSelected, onHover, onClick }:
                 </div>
 
                 <div className="text-right shrink-0 font-mono leading-none">
-                    <div className="font-bold text-[10.5px] text-slate-300">{cung.dai_van}</div>
+                    <div className="font-bold text-[10px] text-slate-300">{cung.dai_van}–{Number(cung.dai_van) + 9}</div>
                     <div className="text-amber-400 font-bold text-[9.5px] mt-0.5">{cung.nguyet_han}</div>
                 </div>
             </div>

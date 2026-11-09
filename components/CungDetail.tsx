@@ -63,7 +63,7 @@ export default function CungDetail({ cung, cungList = [], thienBan, namXem }: Pr
             <div className="flex flex-wrap justify-between items-center gap-2 border-b border-slate-800 pb-3">
                 <div>
                     <h4 className="font-black text-lg text-amber-300 uppercase">Cung {cung.ten_cung} ({cung.can_cung || cung.chi})</h4>
-                    <p className="text-[11px] text-slate-400">Tràng Sinh: <b className="text-slate-200">{cung.trang_sinh}</b> • Đại vận: <b className="text-cyan-300">{cung.dai_van} tuổi ({cung.dv_cung})</b> • Lưu niên {namXem}: <b className="text-pink-300">{cung.luu_cung} ({cung.nguyet_han})</b></p>
+                    <p className="text-[11px] text-slate-400">Tràng Sinh: <b className="text-slate-200">{cung.trang_sinh}</b> • Đại vận cung này: <b className="text-cyan-300">{cung.dai_van}–{Number(cung.dai_van) + 9}t ({cung.dv_cung})</b> • Lưu niên {namXem}: <b className="text-pink-300">{cung.luu_cung} ({cung.nguyet_han})</b></p>
                 </div>
                 <button type="button" onClick={handleAiRead} disabled={disabled} className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-bold text-xs shadow-lg disabled:opacity-45 disabled:pointer-events-none cursor-pointer">
                     {loading || remoteBusy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : aiReading ? <RefreshCw className="w-3.5 h-3.5" /> : <Sparkles className="w-3.5 h-3.5" />}

@@ -81,7 +81,9 @@ export async function POST(req: Request) {
       gio_sinh: gioText.includes("(") ? gioText : `${DIA_CHI[gioChiIdx]} (${gioText || ""})`,
       ban_menh: banMenh, cuc: cucName, cuc_so: cucName, menh_cuc: getMenhCucTuongQuan(banMenh, cucName),
       than_cu: `Thân cư ${CUNG_NAMES[(vtThan - vtMenh + 120) % 12]}`, menh_chu: getMenhChu(DIA_CHI[chSIdx]), than_chu: getThanChu(DIA_CHI[chSIdx]),
-      nam_xem_han: nxNum, nam_xem: nxNum, tuoi_mu: tuoiMu, sao_han: getSaoHan(tuoiMu, isNam), cung_phi: getCungPhi(namD, isNam)
+      nam_xem_han: nxNum, nam_xem: nxNum, tuoi_mu: tuoiMu, sao_han: getSaoHan(tuoiMu, isNam), cung_phi: getCungPhi(namD, isNam),
+      dai_van_hien_tai: (() => { const dv = cung12.find(c => c.dv_cung === "ĐV.MỆNH"); return dv ? `${dv.dai_van}–${Number(dv.dai_van) + 9}t (${dv.can_cung})` : ""; })(),
+      tieu_van_cung: (() => { const tv = cung12.find(c => c.chi === tieuHanChi); return tv ? `${tv.can_cung} (${tv.ten_cung.replace("<THÂN>", "").trim()})` : tieuHanChi; })()
     };
 
     const tongQuan = {

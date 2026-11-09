@@ -4,6 +4,7 @@ import React from "react";
 
 export default function FormattedAiText({ text }: { text: string }) {
     if (!text) return null;
+    const clean = text.replace(/\$\\rightarrow\$|\\rightarrow/g, "→").replace(/\$\\leftrightarrow\$|\\leftrightarrow/g, "↔");
     const renderInline = (line: string) =>
         line.split(/(\*\*.*?\*\*)/g).map((p, i) =>
             p.startsWith("**") && p.endsWith("**")
@@ -13,7 +14,7 @@ export default function FormattedAiText({ text }: { text: string }) {
 
     return (
         <div className="space-y-1.5 leading-relaxed text-[12.5px] text-slate-200">
-            {text.split("\n").map((raw, idx) => {
+            {clean.split("\n").map((raw, idx) => {
                 const line = raw.trim();
                 if (!line) return <div key={idx} className="h-1" />;
                 if (line.startsWith("###")) {

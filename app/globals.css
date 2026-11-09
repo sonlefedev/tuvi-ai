@@ -1,8 +1,8 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #020617;
+  --foreground: #f1f5f9;
 }
 
 @theme inline {
@@ -12,12 +12,15 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
+@keyframes spinSlow { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+@keyframes floatSoft { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-4px); } }
+@keyframes twinkle { 0%, 100% { opacity: 0.2; transform: scale(0.9); } 50% { opacity: 0.9; transform: scale(1.25); } }
+@keyframes shakeCard { 0%, 100% { transform: rotate(0deg); } 25% { transform: rotate(-3deg) scale(1.02); } 75% { transform: rotate(3deg) scale(1.02); } }
+
+.animate-spin-slow { animation: spinSlow 24s linear infinite; }
+.animate-float-soft { animation: floatSoft 4s ease-in-out infinite; }
+.animate-twinkle { animation: twinkle 3.2s ease-in-out infinite; }
+.animate-shake-card { animation: shakeCard 0.35s ease-in-out infinite; }
 
 body {
   background: var(--background);

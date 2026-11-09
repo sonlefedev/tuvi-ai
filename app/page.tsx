@@ -1,7 +1,9 @@
 "use client";
 import { useEffect, useState } from "react";
 import AuthBarAndModal from "@/components/AuthBarAndModal";
+import StarfieldBg from "@/components/StarfieldBg";
 import AppIntroCard from "@/components/AppIntroCard";
+import DailyFortuneWidget from "@/components/DailyFortuneWidget";
 import InputForm from "@/components/InputForm";
 import LaSoBanCo from "@/components/LaSoBanCo";
 import StarLookupModal from "@/components/StarLookupModal";
@@ -69,11 +71,12 @@ export default function Home() {
     }
   };
   return (
-    <main className="min-h-screen bg-slate-950 text-slate-100 p-4 md:p-8 flex flex-col items-center">
+    <main className="relative min-h-screen bg-slate-950 text-slate-100 p-4 md:p-8 flex flex-col items-center">
+      <StarfieldBg />
       {toastCung && <button type="button" onClick={() => { setToastCung(""); document.getElementById("sec-cung")?.scrollIntoView({ behavior: "smooth" }); }} className="md:hidden fixed top-3 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-full bg-amber-500 text-slate-950 font-black text-xs shadow-2xl">Đã chọn cung {toastCung} • Xem luận giải ↓</button>}
       <AuthBarAndModal onLoadSavedChart={(c: SavedChartEntry) => handleGenerate(c)} />
       <SideQuickNav hasResult={Boolean(result)} cungList={result?.cung_12 || []} selectedChi={selectedCung?.chi || ""} onSelectCung={handleSelectCung} />
-      <div id="sec-intro" className="w-full"><AppIntroCard hasResult={Boolean(result)} /></div>
+      <div id="sec-intro" className="relative z-10 w-full"><AppIntroCard hasResult={Boolean(result)} /><DailyFortuneWidget onAskAi={result ? setAiQueuedPrompt : undefined} /></div>
       <div id="sec-form" className="w-full"><InputForm onGenerate={(f) => handleGenerate(f, false)} loading={loading} /></div>
       {result && (
         <div className="w-full max-w-5xl space-y-6 mt-4">

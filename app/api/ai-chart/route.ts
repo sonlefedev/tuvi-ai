@@ -1,7 +1,6 @@
 // app/api/ai-chart/route.ts
 import { NextRequest } from "next/server";
-import { GoogleGenerativeAI } from "@google/generative-ai";
-import { getFastGeminiModels } from "@/lib/ai/gemini-models";
+import { runGeminiStreamResilient } from "@/lib/ai/gemini-models";
 
 const LAYER_RULES: Record<string, string> = {
     codinh: "TẦNG 1 - LÁ SỐ CỐ ĐỊNH BẢN MỆNH: Chỉ xét 100% sao cố định gốc, đánh giá nền tảng trọn đời của đương số.",
@@ -18,11 +17,9 @@ export async function POST(req: NextRequest) {
             try {
                 const apiKey = process.env.GEMINI_API_KEY;
                 if (!apiKey) throw new Error("Chưa cấu hình GEMINI_API_KEY");
-
                 const { compactChart, layerId, layerLabel, aspect } = await req.json();
                 send({ type: "step", text: `Nén toàn bộ 12 cung cho ${layerLabel}...` });
 
-                const models = await getFastGeminiModels(apiKey);
                 const prompt = [
                     "Bạn là chuyên gia phân tích định lượng Tử Vi Đẩu Số. Hãy chấm điểm và xuất dữ liệu vẽ biểu đồ đánh giá khía cạnh: \"" + aspect + "\".",
                     LAYER_RULES[layerId] || LAYER_RULES.codinh,
@@ -31,23 +28,11 @@ export async function POST(req: NextRequest) {
                     'Trả về DUY NHẤT chuỗi JSON hợp lệ (không viết thêm chữ nào ngoài JSON): {"title": "Tên biểu đồ ngắn gọn", "chartType": "radar", "summary": "Nhận định tổng quan 2-3 câu về biểu đồ này", "items": [{"label": "Tên trục ngắn gọn", "score": 82, "note": "Giải thích ngắn vì sao đạt điểm này theo sao"}], "memory_note": "Tóm tắt 1 câu dưới 35 từ về kết quả biểu đồ này"}',
                 ].join("\n\n");
 
-                const genAI = new GoogleGenerativeAI(apiKey);
-                let fullText = "", success = false, lastErr: any = null;
-                for (const m of models.slice(0, 6)) {
-                    try {
-                        send({ type: "step", text: `Model ${m} đang chấm điểm & dựng trục biểu đồ...` });
-                        const model = genAI.getGenerativeModel({ model: m, generationConfig: { temperature: 0.35 } });
-                        const resStream = await model.generateContentStream(prompt);
-                        fullText = "";
-                        for await (const chunk of resStream.stream) {
-                            const t = chunk.text();
-                            if (t) { fullText += t; send({ type: "chunk", text: `Đang tổng hợp dữ liệu biểu đồ (${fullText.length} ký tự)...` }); }
-                        }
-                        success = true;
-                        break;
-                    } catch (e: any) { lastErr = e; send({ type: "step", text: `Model ${m} đang bận, chuyển sang model dự phòng...` }); }
-                }
-                if (!success) throw lastErr || new Error("Tất cả model đều đang bận, thử lại sau vài giây");
+                const fullText = await runGeminiStreamResilient(
+                    apiKey, prompt, { temperature: 0.35 },
+                    (s) => send({ type: "step", text: s }),
+                    (full) => send({ type: "chunk", text: `Đang tổng hợp dữ liệu biểu đồ (${full.length} ký tự)...` })
+                );
 
                 const rawJson = fullText.slice(fullText.indexOf("{"), fullText.lastIndexOf("}") + 1);
                 const parsed = JSON.parse(rawJson);

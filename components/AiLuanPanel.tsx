@@ -25,11 +25,11 @@ export default function AiLuanPanel({ result, selectedCung }: { result: Horoscop
     useEffect(() => {
         const compact = compressLaSoToText(result.thien_ban, result.cung_12);
         const key = buildChartKey(result.thien_ban);
-        const sync = () => setStore(loadChartMemory(key, compact));
+        const sync = () => { if (!loading) setStore(loadChartMemory(key, compact)); };
         sync();
         window.addEventListener("tuvi-memory-updated", sync);
         return () => window.removeEventListener("tuvi-memory-updated", sync);
-    }, [result]);
+    }, [result, loading]);
 
     const askAi = async (q: string) => {
         const cleanQ = q.trim();

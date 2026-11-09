@@ -1,98 +1,33 @@
+// app/api/scan/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
-
-let activeModelName: string | null = null;
-
-// Tự động tìm model Flash nhanh nhất đang hoạt động trên tài khoản của bạn
-async function getBestModel(apiKey: string): Promise<string> {
-    if (activeModelName) return activeModelName;
-
-    try {
-        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
-        const data = await res.json();
-        const available = data.models
-            ?.filter((m: any) => m.supportedGenerationMethods?.includes("generateContent") && m.name.includes("flash"))
-            ?.map((m: any) => m.name.replace("models/", ""));
-
-        console.log("Danh sách model Flash trên tài khoản của bạn:", available);
-
-        // Ưu tiên flash-lite hoặc model flash đầu tiên
-        activeModelName = available?.find((m: string) => m.includes("lite")) || available?.[0] || "gemini-2.5-flash-lite";
-        console.log(`🎯 Đã chọn model tối ưu: ${activeModelName}`);
-        return activeModelName || "gemini-2.5-flash-lite";
-    } catch {
-        return "gemini-2.5-flash-lite";
-    }
-}
+import { getAllAvailableTextModels } from "@/lib/ai/gemini-models";
 
 export async function POST(req: NextRequest) {
     try {
         const apiKey = process.env.GEMINI_API_KEY;
-        if (!apiKey) {
-            return NextResponse.json({ error: "Chưa có API Key" }, { status: 500 });
-        }
-
+        if (!apiKey) return NextResponse.json({ error: "Chưa cấu hình GEMINI_API_KEY" }, { status: 500 });
         const formData = await req.formData();
         const file = formData.get("file") as File;
+        if (!file) return NextResponse.json({ error: "Không tìm thấy file ảnh" }, { status: 400 });
 
-        if (!file) {
-            return NextResponse.json({ error: "Không tìm thấy file ảnh" }, { status: 400 });
-        }
+        const base64Data = Buffer.from(await file.arrayBuffer()).toString("base64");
+        const prompt = `Trích xuất thông tin lá số Tử Vi trong ảnh và trả về DUY NHẤT JSON hợp lệ (không markdown):
+{"ho_ten":"","gioi_tinh":"Nam hoặc Nữ","ngay_sinh_duong":"DD/MM/YYYY","gio_sinh":"","ngay_sinh_am":"","ban_menh":"","cuc":"","cung_than_cu":"","am_duong":"","confidence_score":95,"ghi_chu":""}`;
 
-        const bytes = await file.arrayBuffer();
-        const base64Data = Buffer.from(bytes).toString("base64");
-
+        const models = await getAllAvailableTextModels(apiKey);
         const genAI = new GoogleGenerativeAI(apiKey);
-        const modelName = await getBestModel(apiKey);
-
-        const model = genAI.getGenerativeModel({
-            model: modelName,
-            generationConfig: {
-                temperature: 0.1,
-            },
-        });
-
-        const prompt = `
-      Bạn là chuyên gia trích xuất dữ liệu lá số Tử Vi Đẩu Số.
-      Quét ảnh lá số này và trích xuất dữ liệu ở ô Thiên Bàn và các cung.
-      
-      Trả về kết quả DUY NHẤT chuỗi JSON (không kèm markdown):
-      {
-        "ho_ten": "Họ và tên nếu có",
-        "gioi_tinh": "Nam hoặc Nữ",
-        "ngay_sinh_duong": "DD/MM/YYYY",
-        "gio_sinh": "Ví dụ: 14:30 hoặc Giờ Mùi",
-        "ngay_sinh_am": "Ví dụ: 15/08 năm Giáp Tý",
-        "ban_menh": "Ví dụ: Hải Trung Kim",
-        "cuc": "Ví dụ: Thủy Nhị Cục",
-        "cung_than_cu": "Ví dụ: Thân cư Thê hoặc Thân cư Phúc",
-        "am_duong": "Ví dụ: Dương Nam / Âm Nữ",
-        "confidence_score": 95,
-        "ghi_chu": "Lưu ý nếu ảnh mờ"
-      }
-    `;
-
-        const startTime = Date.now();
-        const result = await model.generateContent([
-            prompt,
-            {
-                inlineData: {
-                    data: base64Data,
-                    mimeType: file.type || "image/jpeg",
-                },
-            },
-        ]);
-
-        const duration = ((Date.now() - startTime) / 1000).toFixed(1);
-        console.log(`⚡ Xử lý xong trong: ${duration} giây!`);
-
-        const responseText = result.response.text().trim();
-        const cleanedJson = responseText.replace(/```json/g, "").replace(/```/g, "").trim();
-        const parsedData = JSON.parse(cleanedJson);
-
-        return NextResponse.json({ success: true, data: parsedData });
+        for (const m of models.slice(0, 5)) {
+            try {
+                const model = genAI.getGenerativeModel({ model: m, generationConfig: { temperature: 0.1 } });
+                const res = await model.generateContent([prompt, { inlineData: { data: base64Data, mimeType: file.type || "image/jpeg" } }], { signal: AbortSignal.timeout(12000) });
+                const txt = res.response.text();
+                const rawJson = txt.slice(txt.indexOf("{"), txt.lastIndexOf("}") + 1);
+                return NextResponse.json({ success: true, data: JSON.parse(rawJson) });
+            } catch { }
+        }
+        return NextResponse.json({ error: "Tất cả model quét ảnh đang bận, vui lòng thử lại sau vài giây!" }, { status: 503 });
     } catch (error: any) {
-        console.error("Lỗi:", error);
-        return NextResponse.json({ error: error.message || "Không thể xử lý ảnh" }, { status: 500 });
+        return NextResponse.json({ error: error?.message || "Không thể xử lý ảnh" }, { status: 500 });
     }
 }

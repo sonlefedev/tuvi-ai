@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
                 ].join("\n\n");
 
                 const fullText = await runGeminiStreamResilient(
-                    apiKey, prompt, { temperature: 0.35 },
+                    apiKey, prompt, { task: "chart_json", temperature: 0.25 },
                     (s) => send({ type: "step", text: s }),
                     (full) => send({ type: "chunk", text: `Đang tổng hợp dữ liệu biểu đồ (${full.length} ký tự)...` })
                 );

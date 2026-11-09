@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
                 ].join("\n\n");
 
                 const fullText = await runGeminiStreamResilient(
-                    apiKey, prompt, { temperature: 0.45, maxOutputTokens: 4600 },
+                    apiKey, prompt, { task: "lifemap_book", temperature: 0.4, maxOutputTokens: 4600 },
                     (s) => send({ type: "step", text: s }),
                     (full) => send({ type: "chunk", text: `Đang viết Bản Đồ Cuộc Đời (${full.length.toLocaleString("vi-VN")} / ~4.800 ký tự)...` })
                 );

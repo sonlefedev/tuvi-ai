@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
                 ].join("\n\n");
 
                 const fullText = await runGeminiStreamResilient(
-                    apiKey, prompt, { temperature: 0.45, maxOutputTokens: 3600 },
+                    apiKey, prompt, { task: "cung_deep", temperature: 0.35, maxOutputTokens: 3600 },
                     (s) => send({ type: "step", text: s }),
                     (full) => send({ type: "chunk", text: `Đang viết luận giải (${full.length} / ~3.200 ký tự)...` })
                 );

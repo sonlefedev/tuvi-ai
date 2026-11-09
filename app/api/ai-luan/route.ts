@@ -1,6 +1,6 @@
 // app/api/ai-luan/route.ts
 import { NextRequest } from "next/server";
-import { runGeminiStreamResilient } from "@/lib/ai/gemini-models";
+import { classifyChatTask, runGeminiStreamResilient } from "@/lib/ai/gemini-models";
 
 export async function POST(req: NextRequest) {
     const encoder = new TextEncoder();
@@ -11,7 +11,8 @@ export async function POST(req: NextRequest) {
                 const apiKey = process.env.GEMINI_API_KEY;
                 if (!apiKey) throw new Error("Chưa cấu hình GEMINI_API_KEY");
                 const { compactChart, memoryNotes = [], history = [], activeContext = "", question } = await req.json();
-                send({ type: "step", text: `Nạp lá số, ${history.length} lượt thoại & ${memoryNotes.length} ký ức...` });
+                const task = classifyChatTask(question);
+                send({ type: "step", text: `Phân loại câu hỏi (${task === "chat_deep" ? "Phân tích sâu" : "Tra cứu nhanh"}) & nạp ${memoryNotes.length} ký ức...` });
 
                 const systemInstruction = [
                     "Bạn là đại sư Tử Vi Đẩu Số (Nam Phái & Phi Tinh Tứ Hóa). Luận giải mạch lạc, sâu sắc, dùng **in đậm** cho tên sao/cung quan trọng.",
@@ -24,7 +25,7 @@ export async function POST(req: NextRequest) {
                 const prompt = ["DỮ LIỆU LÁ SỐ:\n" + compactChart, activeContext, memBlock, histBlock, "CÂU HỎI HIỆN TẠI: " + question].filter(Boolean).join("\n\n");
 
                 const fullText = await runGeminiStreamResilient(
-                    apiKey, prompt, { temperature: 0.25, maxOutputTokens: 4096, systemInstruction },
+                    apiKey, prompt, { task, temperature: 0.25, maxOutputTokens: 4096, systemInstruction },
                     (s) => send({ type: "step", text: s }),
                     (full) => send({ type: "chunk", text: full.replace(/\*{0,2}\[MEMORY\]:?[\s\S]*$/i, "").trim() })
                 );

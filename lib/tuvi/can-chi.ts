@@ -2,6 +2,16 @@
 export const DIA_CHI = ["Tý", "Sửu", "Dần", "Mão", "Thìn", "Tỵ", "Ngọ", "Mùi", "Thân", "Dậu", "Tuất", "Hợi"];
 export const THIEN_CAN = ["Giáp", "Ất", "Bính", "Đinh", "Mậu", "Kỷ", "Canh", "Tân", "Nhâm", "Quý"];
 
+export function getCanChiNam(year: number): string {
+    return `${THIEN_CAN[(year + 6) % 10]} ${DIA_CHI[(year + 8) % 12]}`;
+}
+
+export function getCanChiNgay(year: number, month: number, day: number): string {
+    const a = Math.floor((14 - month) / 12), yr = year + 4800 - a, mo = month + 12 * a - 3;
+    const jdn = day + Math.floor((153 * mo + 2) / 5) + 365 * yr + Math.floor(yr / 4) - Math.floor(yr / 100) + Math.floor(yr / 400) - 32045;
+    return `${THIEN_CAN[(jdn + 9) % 10]} ${DIA_CHI[(jdn + 1) % 12]}`;
+}
+
 export function getVitriMenh(thangAm: number, gioChi: number): number {
     return (2 + thangAm - 1 - gioChi + 120) % 12;
 }

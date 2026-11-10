@@ -1,7 +1,7 @@
 // lib/intro-data.ts
 export const FEATURES = [
     { title: "Engine An Sao Thuần TS & Bàn Cờ 4×4", desc: "Lịch Âm–Dương Hồ Ngọc Đức, 14 Chính tinh + ~90 Phụ tinh, Tuần/Triệt, Ngũ hành màu sao, Lưu niên (L.), Đại vận (ĐV.), Tiểu hạn & Nguyệt hạn T1–T12; hỗ trợ pinch-zoom & xuất ảnh 4K." },
-    { title: "Bản Đồ Cuộc Đời Toàn Tập (6 Chương)", desc: "Tổng hợp 12 cung & 48 đường Phi Hóa thành cẩm nang 6 chương chuyên sâu, đọc liền mạch hoặc tải file .HTML / in PDF." },
+    { title: "Đại Cẩm Nang Cuộc Đời (8 Chương ~100k Chữ)", desc: "Biên soạn 8 chương chuyên sâu dài ~100.000 ký tự (Bản mệnh Ưu/Nhược, Sự nghiệp, Nhân duyên, Sức khỏe, Gặp cảnh gì làm gì, Điều tránh, 8 Đại vận & Kim chỉ nam), lưu từng đợt lên Cloud." },
     { title: "Luận Cung Cố Định 5 Phần (Cache 0 Token)", desc: "Phân tích thuần sao cố định theo Lục diện (Bản cung + Tam hợp + Xung chiếu + Nhị hợp + Giáp cung + Phi Tứ Hóa), mở lại tức thì không tốn token." },
     { title: "Timeline 12 Tháng & Xuất Lịch .ICS", desc: "Chấm điểm cát/hung 12 tháng Đẩu Quân T1–T12 trong năm xem, xem sao lưu từng tháng và xuất file .ics nhắc việc về điện thoại." },
     { title: "Biểu Đồ Đánh Giá AI Đa Tầng", desc: "Chấm điểm định lượng 4 tầng vận trình (Cố định • Đại vận • Lưu Thái Tuế • Tiểu hạn) dưới dạng Radar / Cột / Đường, tùy biến vô hạn khía cạnh." },
@@ -14,7 +14,7 @@ export const FEATURES = [
 export const STEPS = [
     "Đăng nhập tài khoản để đồng bộ đa thiết bị (hoặc dùng Chế độ Khách), nhập thông tin sinh & Năm xem hạn → bấm An sao & Tính toán.",
     "Chạm vào bất kỳ ngôi sao nào trên bàn cờ 4×4 để mở Từ điển tra cứu nhanh; bấm Tải ảnh lá số (4K) ở góc trên để lưu ảnh nét căng.",
-    "Xem Timeline 12 tháng (xuất lịch .ICS), lập Bản Đồ Cuộc Đời 6 chương hoặc bấm AI Luận Chuyên Sâu 5 phần cho từng cung.",
+    "Xem Timeline 12 tháng (xuất lịch .ICS), lập Đại Cẩm Nang 8 chương (~100k chữ) hoặc bấm AI Luận Chuyên Sâu 5 phần cho từng cung.",
     "Trải nghiệm Biểu đồ đa tầng, Hợp lá số đôi, Định giờ sinh ngược hoặc ghi lại Nhật ký chiêm nghiệm thực tế bên dưới.",
     "Mở nút Hỏi Trợ Lý AI ở góc dưới bên trái để hỏi đáp trực tiếp theo cung đang chọn, kéo thả khung chat tùy ý.",
 ];

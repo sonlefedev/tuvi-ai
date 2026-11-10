@@ -38,8 +38,9 @@ export async function streamAiEndpoint(url: string, payload: any, onStep: (step:
     if (!finalData && lastRaw.includes("[P1]")) {
         return { reading: { chinhTinhBanCung: extractTag(lastRaw, "[P1]", ["[P2]"]), phuTinhTuongTac: extractTag(lastRaw, "[P2]", ["[P3]"]), tamHopXungChieu: extractTag(lastRaw, "[P3]", ["[P4]"]), nhiHopGiapPhiHoa: extractTag(lastRaw, "[P4]", ["[P5]"]), ducKetLoiKhuyen: extractTag(lastRaw, "[P5]", ["[MEM]"]) }, memoryNote: "" };
     }
-    if (!finalData && lastRaw.includes("[M1]")) {
-        return { lifeMap: { c1CotCach: extractTag(lastRaw, "[M1]", ["[M2]"]), c2SuNghiep: extractTag(lastRaw, "[M2]", ["[M3]"]), c3TinhDuyen: extractTag(lastRaw, "[M3]", ["[M4]"]), c4SucKhoe: extractTag(lastRaw, "[M4]", ["[M5]"]), c5NenTranh: extractTag(lastRaw, "[M5]", ["[M6]"]), c6KimChiNam: extractTag(lastRaw, "[M6]", ["[MEM]"]) }, memoryNote: "" };
+    if (!finalData && lastRaw.length >= 600) {
+        const cleanRaw = lastRaw.split("[MEM]")[0].trim();
+        return { content: cleanRaw, reply: cleanRaw, answer: cleanRaw, memoryNote: "" };
     }
     if (!finalData && lastChunk.length >= 250) return { reply: lastChunk, answer: lastChunk };
     if (!finalData) throw new Error("Máy chủ AI đang bận, vui lòng bấm thử lại!");

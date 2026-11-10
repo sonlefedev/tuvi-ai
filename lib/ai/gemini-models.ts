@@ -49,12 +49,13 @@ export async function runGeminiStreamResilient(
     const all = await getAllAvailableTextModels(apiKey);
     const queue = rankModelsForTask(all, cfg.task || "cung_deep");
     const genAI = new GoogleGenerativeAI(apiKey);
+    const connectTimeout = cfg.task === "lifemap_book" ? 10000 : 7500;
     for (let i = 0; i < queue.length; i++) {
         const m = queue[i];
         try {
             onStep(`[${cfg.task || "ai"}] Đang gọi ${m} (${i + 1}/${queue.length})...`);
             const model = genAI.getGenerativeModel({ model: m, systemInstruction: cfg.systemInstruction, generationConfig: { temperature: cfg.temperature ?? 0.25, maxOutputTokens: cfg.maxOutputTokens } });
-            const resStream = await model.generateContentStream(prompt, { signal: AbortSignal.timeout(7500) });
+            const resStream = await model.generateContentStream(prompt, { signal: AbortSignal.timeout(connectTimeout) });
             let full = "";
             for await (const chunk of resStream.stream) {
                 const t = chunk.text();

@@ -1,6 +1,6 @@
 // lib/ai/cloud-profile-sync.ts
 import { getCurrentUser } from "../auth-store";
-const LOCK_TTL_MS = 55000;
+const LOCK_TTL_MS = 95000;
 let isPushing = false;
 let lastLocalWriteAt = 0;
 function getDeviceId(): string {

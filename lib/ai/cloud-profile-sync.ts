@@ -1,14 +1,17 @@
 // lib/ai/cloud-profile-sync.ts
 import { getCurrentUser } from "../auth-store";
-
-const LOCK_TTL_MS = 65000;
+const LOCK_TTL_MS = 55000;
 let isPushing = false;
 let lastLocalWriteAt = 0;
-
+function getDeviceId(): string {
+    if (typeof window === "undefined") return "srv";
+    let id = sessionStorage.getItem("tuvi_dev_id");
+    if (!id) { id = Math.random().toString(36).slice(2, 10); sessionStorage.setItem("tuvi_dev_id", id); }
+    return id;
+}
 function emitSyncStatus(status: "syncing" | "synced" | "error", detail = "") {
     if (typeof window !== "undefined") window.dispatchEvent(new CustomEvent("tuvi-sync-status", { detail: { status, detail, ts: Date.now() } }));
 }
-
 export async function pushProfileToCloud(chartKey: string, formData?: any): Promise<boolean> {
     if (typeof window === "undefined") return false;
     const user = getCurrentUser();
@@ -38,27 +41,29 @@ export async function pushProfileToCloud(chartKey: string, formData?: any): Prom
     } catch (e: any) { emitSyncStatus("error", e?.message || "Lỗi mạng"); return false; }
     finally { isPushing = false; lastLocalWriteAt = Date.now(); }
 }
-
 export async function setOperationLock(chartKey: string, lockId: string, busy: boolean): Promise<void> {
     if (typeof window === "undefined" || !chartKey) return;
     try {
         const locks = JSON.parse(localStorage.getItem(`${chartKey}_locks_v1`) || "{}");
-        if (busy) locks[lockId] = Date.now();
+        if (busy) locks[lockId] = { ts: Date.now(), by: getDeviceId() };
         else delete locks[lockId];
         localStorage.setItem(`${chartKey}_locks_v1`, JSON.stringify(locks));
+        window.dispatchEvent(new Event("tuvi-memory-updated"));
         await pushProfileToCloud(chartKey);
     } catch { }
 }
-
 export function isOperationLockedRemotely(chartKey: string, lockId: string, isLocalRunning: boolean): boolean {
     if (typeof window === "undefined" || !chartKey || isLocalRunning) return false;
     try {
         const locks = JSON.parse(localStorage.getItem(`${chartKey}_locks_v1`) || "{}");
-        const ts = Number(locks[lockId] || 0);
+        const item = locks[lockId];
+        if (!item) return false;
+        const ts = typeof item === "number" ? item : Number(item.ts || 0);
+        const by = typeof item === "object" ? item.by : "";
+        if (by && by === getDeviceId()) return false;
         return ts > 0 && Date.now() - ts < LOCK_TTL_MS;
     } catch { return false; }
 }
-
 export async function pullProfileFromCloud(chartKey?: string): Promise<any | null> {
     if (typeof window === "undefined" || isPushing || Date.now() - lastLocalWriteAt < 2500) return null;
     const user = getCurrentUser();
@@ -75,11 +80,7 @@ export async function pullProfileFromCloud(chartKey?: string): Promise<any | nul
         if (targetKey) {
             const localMem = JSON.parse(localStorage.getItem(targetKey) || "{}");
             const mergedMsgs = (d.mem?.messages?.length || 0) >= (localMem.messages?.length || 0) ? (d.mem?.messages || []) : localMem.messages;
-            const mergedMem = {
-                ...localMem, ...(d.mem || {}), messages: mergedMsgs,
-                cungReadings: { ...(localMem.cungReadings || {}), ...allReadings },
-                memoryNotes: [...new Set([...(localMem.memoryNotes || []), ...(d.mem?.memoryNotes || [])])].slice(-12),
-            };
+            const mergedMem = { ...localMem, ...(d.mem || {}), messages: mergedMsgs, cungReadings: { ...(localMem.cungReadings || {}), ...allReadings }, memoryNotes: [...new Set([...(localMem.memoryNotes || []), ...(d.mem?.memoryNotes || [])])].slice(-12) };
             localStorage.setItem(targetKey, JSON.stringify(mergedMem));
             if (d.lifeMap) localStorage.setItem(`${targetKey}_lifemap_v1`, JSON.stringify(d.lifeMap));
             if (Array.isArray(d.journal)) localStorage.setItem(`${targetKey}_journal_v1`, JSON.stringify(d.journal));

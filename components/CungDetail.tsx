@@ -54,7 +54,7 @@ export default function CungDetail({ cung, cungList = [], thienBan, namXem }: Pr
                 notifyTabStatus(`🔔 (1) Đã luận xong cung ${cung.ten_cung}!`);
             }
         } catch (e: any) { notifyTabStatus("⚠️ Lỗi luận cung AI", 3000); setErrMsg(e?.message || "Không thể gọi AI luận cung"); }
-        finally { setLoading(false); await setOperationLock(chartKey, `cung_${cung.chi}`, false); }
+        finally { await setOperationLock(chartKey, `cung_${cung.chi}`, false); setLoading(false); }
     };
 
     const disabled = loading || remoteBusy || !fixedContext;

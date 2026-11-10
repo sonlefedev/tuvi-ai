@@ -54,7 +54,7 @@ export default function TuviChartsPanel({ result }: { result: HoroscopeResult })
                 setActiveSpec(spec); setChartKind(spec.chartType); saveChartSpec(chartKey, compactChart, spec, data.memoryNote); notifyTabStatus("🔔 (1) Đã lập xong biểu đồ!");
             }
         } catch (e: any) { alert(e?.message || "Lỗi lập biểu đồ"); }
-        finally { setLoading(false); await setOperationLock(chartKey, `chart_${layerId}`, false); }
+        finally { await setOperationLock(chartKey, `chart_${layerId}`, false); setLoading(false); }
     };
 
     const disabled = loading || remoteBusy;

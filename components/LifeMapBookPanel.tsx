@@ -55,7 +55,7 @@ export default function LifeMapBookPanel({ result }: { result: HoroscopeResult }
                 notifyTabStatus("🔔 (1) Đã hoàn thành Bản Đồ Cuộc Đời!");
             }
         } catch (e: any) { alert(e?.message || "Lỗi lập Bản Đồ Cuộc Đời"); }
-        finally { setLoading(false); await setOperationLock(chartKey, "lifemap", false); }
+        finally { await setOperationLock(chartKey, "lifemap", false); setLoading(false); }
     };
 
     const totalChars = data ? Object.values(data).reduce((s, v) => s + (v?.length || 0), 0) : 0;

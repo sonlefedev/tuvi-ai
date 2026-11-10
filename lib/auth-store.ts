@@ -1,9 +1,11 @@
 // lib/auth-store.ts
 export interface SavedChartEntry { id: string; hoTen: string; gioiTinh: string; ngay: number; thang: number; nam: number; gio: string; namXem: number; }
-export interface UserAccount { id: string; displayName: string; username: string; passHash: string; savedCharts: SavedChartEntry[]; }
+export interface UserAccount { id: string; displayName: string; username: string; passHash: string; savedCharts: SavedChartEntry[]; isAdmin?: boolean; }
 
 const USERS_KEY = "tuvi_users_db_v1";
 const SESSION_KEY = "tuvi_active_user_v1";
+export const ADMIN_USERNAME = "sonlefedev";
+export const isAdminUser = (u: UserAccount | null | undefined): boolean => (u?.username || u?.id || "").toLowerCase() === ADMIN_USERNAME;
 
 async function hashPass(pw: string): Promise<string> {
     const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode("tuvi_salt_" + pw));
@@ -17,7 +19,8 @@ function getAllUsers(): Record<string, UserAccount> {
 
 function cacheLocalUser(u: UserAccount) {
     const users = getAllUsers();
-    users[u.id] = u;
+    const enriched: UserAccount = { ...u, isAdmin: isAdminUser(u) };
+    users[u.id] = enriched;
     localStorage.setItem(USERS_KEY, JSON.stringify(users));
     localStorage.setItem(SESSION_KEY, u.id);
     window.dispatchEvent(new Event("tuvi-auth-changed"));
@@ -34,7 +37,7 @@ async function callAuthApi(payload: any): Promise<UserAccount> {
 export function listLocalUsers(): UserAccount[] { return Object.values(getAllUsers()); }
 export function getCurrentUser(): UserAccount | null {
     if (typeof window === "undefined") return null;
-    try { const id = localStorage.getItem(SESSION_KEY); return id ? getAllUsers()[id] || null : null; } catch { return null; }
+    try { const id = localStorage.getItem(SESSION_KEY); const u = id ? getAllUsers()[id] || null : null; return u ? { ...u, isAdmin: isAdminUser(u) } : null; } catch { return null; }
 }
 
 export async function registerUser(displayName: string, username: string, password: string): Promise<UserAccount> {

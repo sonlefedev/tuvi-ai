@@ -2,6 +2,7 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import { BarChart3, Clock, Download, Flame, RefreshCw, Smartphone, Users, X } from "lucide-react";
+import { getCurrentUser } from "@/lib/auth-store";
 
 const SECTION_NAMES: Record<string, string> = {
     "sec-intro": "Giới thiệu & Gieo quẻ ngày",
@@ -28,7 +29,7 @@ export default function AnalyticsDashboardModal({ onClose }: { onClose: () => vo
 
     const load = async () => {
         setLoading(true);
-        try { const r = await fetch("/api/analytics", { cache: "no-store" }); const j = await r.json(); setDays(j.days || []); } catch { }
+        try { const uid = getCurrentUser()?.username || ""; const r = await fetch(`/api/analytics?uid=${encodeURIComponent(uid)}`, { cache: "no-store" }); const j = await r.json(); setDays(j.days || []); } catch { }
         finally { setLoading(false); }
     };
     useEffect(() => { load(); }, []);
@@ -51,7 +52,7 @@ export default function AnalyticsDashboardModal({ onClose }: { onClose: () => vo
         <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-3 sm:p-5">
             <div className="w-full max-w-4xl max-h-[90vh] overflow-y-auto bg-slate-900 border border-slate-700 rounded-2xl p-5 space-y-4 text-xs text-slate-200 shadow-2xl">
                 <div className="flex flex-wrap justify-between items-center gap-2 border-b border-slate-800 pb-3">
-                    <div className="flex items-center gap-2"><BarChart3 className="w-5 h-5 text-cyan-400" /><div><h3 className="font-black text-base text-amber-300">Đo Lường Lượt Ghé Thăm & Hành Vi Người Dùng</h3><p className="text-[11px] text-slate-400">Dữ liệu thực tế đồng bộ Supabase Cloud (tự động tổng hợp mỗi 15 giây)</p></div></div>
+                    <div className="flex items-center gap-2"><BarChart3 className="w-5 h-5 text-cyan-400" /><div><h3 className="font-black text-base text-amber-300">Đo Lường Lượt Ghé Thăm & Hành Vi Người Dùng</h3><p className="text-[11px] text-slate-400">Chế độ Quản trị viên (@sonlefedev) • Đồng bộ Supabase Cloud</p></div></div>
                     <div className="flex gap-2">
                         <button type="button" onClick={exportCsv} className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-500/35 font-bold cursor-pointer"><Download className="w-3.5 h-3.5" /> CSV</button>
                         <button type="button" onClick={load} className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold cursor-pointer"><RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} /> Làm mới</button>

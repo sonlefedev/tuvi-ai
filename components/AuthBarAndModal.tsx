@@ -2,7 +2,7 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import { BarChart3, BookmarkCheck, Cloud, CloudOff, KeyRound, Loader2, LogIn, LogOut, User, UserPlus, X } from "lucide-react";
-import { getCurrentUser, listLocalUsers, loginUser, logoutUser, registerUser, resetUserPassword, SavedChartEntry, UserAccount } from "@/lib/auth-store";
+import { getCurrentUser, isAdminUser, listLocalUsers, loginUser, logoutUser, registerUser, resetUserPassword, SavedChartEntry, UserAccount } from "@/lib/auth-store";
 import AnalyticsDashboardModal from "./AnalyticsDashboardModal";
 
 export default function AuthBarAndModal({ onLoadSavedChart }: { onLoadSavedChart: (c: SavedChartEntry) => void }) {
@@ -17,7 +17,7 @@ export default function AuthBarAndModal({ onLoadSavedChart }: { onLoadSavedChart
     const [syncState, setSyncState] = useState<{ status: string; detail: string }>({ status: "synced", detail: "" });
 
     useEffect(() => {
-        const sync = () => { setUser(getCurrentUser()); setLocalList(listLocalUsers()); };
+        const sync = () => { const cur = getCurrentUser(); setUser(cur); if (!isAdminUser(cur)) setShowStats(false); setLocalList(listLocalUsers()); };
         const onSyncEvt = (e: any) => setSyncState(e.detail || { status: "synced", detail: "" });
         sync();
         window.addEventListener("tuvi-auth-changed", sync);
@@ -34,6 +34,8 @@ export default function AuthBarAndModal({ onLoadSavedChart }: { onLoadSavedChart
             setModalMode(null); setPassword("");
         } catch (e: any) { setErr(e?.message || "Thao tác thất bại"); }
     };
+
+    const admin = isAdminUser(user);
 
     return (
         <>
@@ -57,7 +59,7 @@ export default function AuthBarAndModal({ onLoadSavedChart }: { onLoadSavedChart
                             )}
                         </div>
                         <div className="flex items-center gap-1.5">
-                            <button type="button" onClick={() => setShowStats(true)} className="flex items-center gap-1 px-3 py-1 rounded-xl bg-cyan-500/15 hover:bg-cyan-500/25 text-cyan-300 border border-cyan-500/35 text-[11px] font-bold cursor-pointer"><BarChart3 className="w-3.5 h-3.5" /> Thống kê</button>
+                            {admin && <button type="button" onClick={() => setShowStats(true)} className="flex items-center gap-1 px-3 py-1 rounded-xl bg-cyan-500/15 hover:bg-cyan-500/25 text-cyan-300 border border-cyan-500/35 text-[11px] font-bold cursor-pointer"><BarChart3 className="w-3.5 h-3.5" /> Thống kê</button>}
                             <button type="button" onClick={logoutUser} className="flex items-center gap-1 px-3 py-1 rounded-xl bg-slate-800 hover:bg-rose-950/60 text-slate-300 hover:text-rose-300 text-[11px] font-semibold cursor-pointer"><LogOut className="w-3.5 h-3.5" /> Đăng xuất</button>
                         </div>
                     </>
@@ -65,14 +67,13 @@ export default function AuthBarAndModal({ onLoadSavedChart }: { onLoadSavedChart
                     <>
                         <div className="flex items-center gap-2"><User className="w-4 h-4 text-slate-400" /><span className="text-slate-300">Đang dùng <b className="text-amber-300">Chế độ Khách</b> <span className="hidden sm:inline text-slate-400">(Đăng nhập để đồng bộ đa thiết bị)</span></span></div>
                         <div className="flex gap-1.5">
-                            <button type="button" onClick={() => setShowStats(true)} className="flex items-center gap-1 px-2.5 py-1 rounded-xl bg-cyan-500/15 hover:bg-cyan-500/25 text-cyan-300 border border-cyan-500/35 font-bold text-[11px] cursor-pointer"><BarChart3 className="w-3.5 h-3.5" /> Thống kê</button>
                             <button type="button" onClick={() => { setErr(""); setModalMode("login"); }} className="flex items-center gap-1 px-3 py-1 rounded-xl bg-purple-600/25 hover:bg-purple-600/40 text-purple-200 border border-purple-500/40 font-bold text-[11px] cursor-pointer"><LogIn className="w-3.5 h-3.5" /> Đăng nhập</button>
                             <button type="button" onClick={() => { setErr(""); setModalMode("register"); }} className="flex items-center gap-1 px-3 py-1 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 border border-amber-500/40 font-bold text-[11px] cursor-pointer"><UserPlus className="w-3.5 h-3.5" /> Đăng ký</button>
                         </div>
                     </>
                 )}
             </div>
-            {showStats && <AnalyticsDashboardModal onClose={() => setShowStats(false)} />}
+            {admin && showStats && <AnalyticsDashboardModal onClose={() => setShowStats(false)} />}
             {modalMode && (
                 <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
                     <form onSubmit={handleSubmit} className="w-full max-w-sm bg-slate-900 border border-slate-700 rounded-2xl p-5 space-y-3 text-xs shadow-2xl">

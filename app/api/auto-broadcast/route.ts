@@ -31,8 +31,32 @@ async function writeState(data: any) {
     }
 }
 
+async function publishTodayArticle(st: any) {
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) return st;
+    const vn = new Date(Date.now() + 7 * 3600 * 1000);
+    const y = vn.getUTCFullYear(), m = vn.getUTCMonth() + 1, d = vn.getUTCDate();
+    const dateKey = `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+    const ccDay = getCanChiNgay(y, m, d), ccYear = getCanChiNam(y);
+    const site = "https://sonlexinchao-tuvi.netlify.app";
+    const prompt = `Viết 1 bài luận Tử Vi & Lịch Vạn Niên chuẩn SEO cho ngày ${d}/${m}/${y} (Ngày ${ccDay}, năm ${ccYear}), dài khoảng 220-280 từ, gồm: (1) Tổng quan cát hung & năng lượng ngũ hành trong ngày; (2) Việc nên làm & việc cần tránh; (3) Lời khuyên chiêm nghiệm cho 12 con giáp. Văn phong ấm áp, sâu sắc, không dùng markdown phức tạp.`;
+    const articleBody = (await runGeminiStreamResilient(apiKey, prompt, { task: "chat_quick", temperature: 0.6, maxOutputTokens: 850 }, () => { })).trim();
+    await fetch("https://api.indexnow.org/indexnow", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ host: "sonlexinchao-tuvi.netlify.app", key: "sonlefedevtuvi2026indexnow", urlList: [site, `${site}/api/daily-seo-feed`] }) }).catch(() => null);
+    const title = `Tử Vi Ngày ${ccDay} (${d}/${m}/${y}) — Luận Giải Cát Hung & Lời Khuyên Hành Động`;
+    const article = { date: dateKey, title, body: articleBody };
+    const logItem = { time: vn.toISOString().replace("T", " ").slice(0, 16), topic: title, channels: "Tự xuất bản lên Trang chủ SEO • RSS Feed • Ping Google & Bing IndexNow: OK", excerpt: articleBody.slice(0, 160) + "..." };
+    const next = { articles: [article, ...(st.articles || []).filter((a: any) => a.date !== dateKey)].slice(0, 14), logs: [logItem, ...(st.logs || [])].slice(0, 20) };
+    await writeState(next);
+    return next;
+}
+
 export async function GET() {
-    const st = await readState();
+    let st = await readState();
+    const vn = new Date(Date.now() + 7 * 3600 * 1000);
+    const todayKey = vn.toISOString().slice(0, 10);
+    if (!st.articles?.some((a: any) => a.date === todayKey)) {
+        st = await publishTodayArticle(st).catch(() => st);
+    }
     return NextResponse.json({ latestArticle: st.articles?.[0] || null, articles: (st.articles || []).slice(0, 7), logs: (st.logs || []).slice(0, 15) });
 }
 
@@ -41,27 +65,7 @@ export async function POST(req: NextRequest) {
         const body = await req.json();
         const isAuth = String(body.uid || "").toLowerCase() === ADMIN_ID || body.cronSource === "netlify-schedule";
         if (!isAuth) return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
-        const st = await readState();
-        const apiKey = process.env.GEMINI_API_KEY;
-        if (!apiKey) return NextResponse.json({ error: "Thiếu GEMINI_API_KEY" }, { status: 500 });
-
-        const vn = new Date(Date.now() + 7 * 3600 * 1000);
-        const y = vn.getUTCFullYear(), m = vn.getUTCMonth() + 1, d = vn.getUTCDate();
-        const ccDay = getCanChiNgay(y, m, d), ccYear = getCanChiNam(y);
-        const site = "https://sonlexinchao-tuvi.netlify.app";
-        const prompt = `Viết 1 bài luận Tử Vi & Lịch Vạn Niên chuẩn SEO cho ngày ${d}/${m}/${y} (Ngày ${ccDay}, năm ${ccYear}), dài khoảng 220-280 từ, gồm: (1) Tổng quan cát hung & năng lượng ngũ hành trong ngày; (2) Việc nên làm & việc cần tránh; (3) Lời khuyên chiêm nghiệm cho 12 con giáp. Văn phong ấm áp, sâu sắc, không dùng markdown phức tạp.`;
-        const articleBody = (await runGeminiStreamResilient(apiKey, prompt, { task: "chat_quick", temperature: 0.6, maxOutputTokens: 850 }, () => { })).trim();
-
-        await fetch("https://api.indexnow.org/indexnow", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ host: "sonlexinchao-tuvi.netlify.app", key: "sonlefedevtuvi2026indexnow", urlList: [site, `${site}/api/daily-seo-feed`] }) }).catch(() => null);
-
-        const title = `Tử Vi Ngày ${ccDay} (${d}/${m}/${y}) — Luận Giải Cát Hung & Lời Khuyên Hành Động`;
-        const article = { date: `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`, title, body: articleBody };
-        const logItem = { time: vn.toISOString().replace("T", " ").slice(0, 16), topic: title, channels: "Tự xuất bản lên Trang chủ SEO • RSS Feed • Ping Google & Bing IndexNow: OK", excerpt: articleBody.slice(0, 160) + "..." };
-        const next = {
-            articles: [article, ...(st.articles || []).filter((a: any) => a.date !== article.date)].slice(0, 14),
-            logs: [logItem, ...(st.logs || [])].slice(0, 20),
-        };
-        await writeState(next);
+        const next = await publishTodayArticle(await readState());
         return NextResponse.json(next);
     } catch (e: any) { return NextResponse.json({ error: e?.message || "Lỗi tự động xuất bản" }, { status: 500 }); }
 }

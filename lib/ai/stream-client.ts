@@ -38,6 +38,9 @@ export async function streamAiEndpoint(url: string, payload: any, onStep: (step:
     if (!finalData && lastRaw.includes("[P1]")) {
         return { reading: { chinhTinhBanCung: extractTag(lastRaw, "[P1]", ["[P2]"]), phuTinhTuongTac: extractTag(lastRaw, "[P2]", ["[P3]"]), tamHopXungChieu: extractTag(lastRaw, "[P3]", ["[P4]"]), nhiHopGiapPhiHoa: extractTag(lastRaw, "[P4]", ["[P5]"]), ducKetLoiKhuyen: extractTag(lastRaw, "[P5]", ["[MEM]"]) }, memoryNote: "" };
     }
+    if (!finalData && lastRaw.includes("[FB]")) {
+        return { fb: extractTag(lastRaw, "[FB]", ["[ZALO]", "[TIKTOK]", "[BLOG]", "[POSTER]"]), zalo: extractTag(lastRaw, "[ZALO]", ["[TIKTOK]", "[BLOG]", "[POSTER]"]), tiktok: extractTag(lastRaw, "[TIKTOK]", ["[BLOG]", "[POSTER]"]), blog: extractTag(lastRaw, "[BLOG]", ["[POSTER]"]), posterLines: [] };
+    }
     if (!finalData && lastRaw.length >= 600) {
         const cleanRaw = lastRaw.split("[MEM]")[0].trim();
         return { content: cleanRaw, reply: cleanRaw, answer: cleanRaw, memoryNote: "" };

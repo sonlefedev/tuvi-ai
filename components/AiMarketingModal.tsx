@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { Check, Copy, ImageDown, Loader2, Megaphone, Sparkles, X } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth-store";
 import { downloadPromoPosterPng } from "@/lib/poster-export";
+import { streamAiEndpoint } from "@/lib/ai/stream-client";
 
 const FOCUSES = [
     { id: "auto", label: "Tự động theo xu hướng hôm nay" },
@@ -16,22 +17,27 @@ const FOCUSES = [
 export default function AiMarketingModal({ onClose }: { onClose: () => void }) {
     const [focus, setFocus] = useState("auto");
     const [loading, setLoading] = useState(false);
+    const [statusText, setStatusText] = useState("");
     const [resData, setResData] = useState<any>(null);
     const [tab, setTab] = useState<"fb" | "zalo" | "tiktok" | "blog">("fb");
     const [copied, setCopied] = useState(false);
 
     const generate = async () => {
         setLoading(true);
+        setStatusText("Đang phân tích xu hướng người dùng hôm nay...");
         try {
             const uid = getCurrentUser()?.username || "";
             const st = await fetch(`/api/analytics?uid=${encodeURIComponent(uid)}`).then((r) => r.json()).catch(() => ({}));
             const topFeat = Object.entries(st?.days?.[0]?.features || {}).sort((a: any, b: any) => b[1] - a[1])[0]?.[0] || "";
-            const r = await fetch("/api/ai-marketing", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ uid, focus, trendHint: topFeat ? `Tính năng dùng nhiều nhất hôm nay: ${topFeat}` : "" }) });
-            const j = await r.json();
-            if (!r.ok) throw new Error(j.error || "Lỗi AI");
-            setResData(j);
+            const data = await streamAiEndpoint(
+                "/api/ai-marketing",
+                { uid, focus, trendHint: topFeat ? `Tính năng dùng nhiều nhất hôm nay: ${topFeat}` : "" },
+                (s) => setStatusText(s),
+                (c) => setStatusText(c)
+            );
+            setResData(data);
         } catch (e: any) { alert(e?.message || "Lỗi tạo bài quảng cáo"); }
-        finally { setLoading(false); }
+        finally { setLoading(false); setStatusText(""); }
     };
 
     const copyText = async (txt: string) => {
@@ -60,6 +66,8 @@ export default function AiMarketingModal({ onClose }: { onClose: () => void }) {
                         <ImageDown className="w-4 h-4" /> Tải Poster Ảnh (.PNG)
                     </button>
                 </div>
+
+                {statusText && <div className="px-3 py-2 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-200 text-[11px] font-mono">{statusText}</div>}
 
                 {resData ? (
                     <div className="space-y-3">

@@ -1,0 +1,2 @@
+[functions."daily-autopromo"]
+  schedule = "30 0 * * *"

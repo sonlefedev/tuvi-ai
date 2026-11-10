@@ -1,13 +1,14 @@
 // components/SynastryPanel.tsx
 "use client";
 import React, { useEffect, useState } from "react";
-import { HeartHandshake, Loader2, Sparkles } from "lucide-react";
+import { Check, HeartHandshake, Loader2, Share2, Sparkles } from "lucide-react";
 import { HoroscopeResult } from "@/lib/types";
 import { compressLaSoToText } from "@/lib/ai/compress-laso";
 import { getCurrentUser, SavedChartEntry } from "@/lib/auth-store";
 import { buildChartKey } from "@/lib/ai/tuvi-memory-store";
 import { pushProfileToCloud } from "@/lib/ai/cloud-profile-sync";
 import { streamAiEndpoint } from "@/lib/ai/stream-client";
+import { trackFeature } from "@/lib/analytics-client";
 import FormattedAiText from "./FormattedAiText";
 
 const HOURS = ["Tý (23h-01h)", "Sửu (01h-03h)", "Dần (03h-05h)", "Mão (05h-07h)", "Thìn (07h-09h)", "Tỵ (09h-11h)", "Ngọ (11h-13h)", "Mùi (13h-15h)", "Thân (15h-17h)", "Dậu (17h-19h)", "Tuất (19h-21h)", "Hợi (21h-23h)"];
@@ -24,6 +25,7 @@ export default function SynastryPanel({ resultA }: { resultA: HoroscopeResult })
     const [loading, setLoading] = useState(false);
     const [step, setStep] = useState("");
     const [output, setOutput] = useState("");
+    const [invited, setInvited] = useState(false);
 
     const chartKey = buildChartKey(resultA.thien_ban);
     const cacheKey = `${chartKey}_synastry_v1`;
@@ -40,6 +42,13 @@ export default function SynastryPanel({ resultA }: { resultA: HoroscopeResult })
     }, [cacheKey, loading]);
 
     const pickSaved = (c: SavedChartEntry) => { setNameB(c.hoTen); setGenderB(c.gioiTinh); setDayB(String(c.ngay)); setMonthB(String(c.thang)); setYearB(String(c.nam)); setHourB(c.gio); };
+
+    const invitePartner = async () => {
+        trackFeature("Mời người ấy hợp lá số");
+        const sender = encodeURIComponent(resultA.thien_ban.ho_ten || "bạn");
+        const link = `https://sonlexinchao-tuvi.netlify.app/?ref=couple&by=${sender}`;
+        try { await navigator.clipboard.writeText(`${resultA.thien_ban.ho_ten} mời bạn cùng đối chiếu Hợp Lá Số Tử Vi AI miễn phí tại: ${link}`); setInvited(true); setTimeout(() => setInvited(false), 2500); } catch { }
+    };
 
     const compare = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -61,9 +70,10 @@ export default function SynastryPanel({ resultA }: { resultA: HoroscopeResult })
         <section id="sec-synastry" className="bg-slate-900/90 border border-pink-500/30 rounded-2xl p-5 space-y-3.5 text-xs text-slate-200">
             <div className="flex flex-wrap justify-between items-center gap-2 border-b border-slate-800 pb-2.5">
                 <div className="flex items-center gap-2"><HeartHandshake className="w-5 h-5 text-pink-400" /><div><h3 className="font-bold text-sm text-pink-300">Hợp Lá Số Đôi: {resultA.thien_ban.ho_ten} ↔ {nameB.trim() || "Người B"}</h3><p className="text-[11px] text-slate-400">Đối chiếu lá số hiện tại với người thương, vợ/chồng hoặc đối tác làm ăn</p></div></div>
-                <select value={relation} onChange={(e) => setRelation(e.target.value)} className="bg-slate-950 border border-slate-700 rounded-xl px-3 py-1.5 text-pink-200 font-semibold">
-                    <option>Vợ chồng / Tình duyên</option><option>Đối tác kinh doanh / Cộng sự</option><option>Cha mẹ – Con cái / Gia đạo</option>
-                </select>
+                <div className="flex flex-wrap items-center gap-1.5">
+                    <button type="button" onClick={invitePartner} className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-pink-500/15 hover:bg-pink-500/25 text-pink-200 border border-pink-500/35 text-[11px] font-bold cursor-pointer">{invited ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Share2 className="w-3.5 h-3.5" />} {invited ? "Đã chép link mời!" : "Gửi link mời người ấy"}</button>
+                    <select value={relation} onChange={(e) => setRelation(e.target.value)} className="bg-slate-950 border border-slate-700 rounded-xl px-3 py-1.5 text-pink-200 font-semibold"><option>Vợ chồng / Tình duyên</option><option>Đối tác kinh doanh / Cộng sự</option><option>Cha mẹ – Con cái / Gia đạo</option></select>
+                </div>
             </div>
             {saved.length > 0 && <div className="flex flex-wrap gap-1.5 items-center text-[11px]"><span className="text-slate-400">Chọn nhanh từ tài khoản:</span>{saved.map((c) => <button key={c.id} type="button" onClick={() => pickSaved(c)} className="px-2 py-0.5 rounded bg-slate-800 hover:bg-pink-500/20 text-pink-200 border border-slate-700 cursor-pointer">{c.hoTen} ({c.nam})</button>)}</div>}
             <form onSubmit={compare} className="grid grid-cols-2 md:grid-cols-6 gap-2">

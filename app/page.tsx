@@ -2,10 +2,8 @@
 import { useEffect, useRef, useState } from "react";
 import AuthBarAndModal from "@/components/AuthBarAndModal"; import AnalyticsTracker from "@/components/AnalyticsTracker";
 import StarfieldBg from "@/components/StarfieldBg"; import AppIntroCard from "@/components/AppIntroCard";
-import DailyFortuneWidget from "@/components/DailyFortuneWidget";
-import InputForm from "@/components/InputForm";
-import LaSoBanCo from "@/components/LaSoBanCo";
-import StarLookupModal from "@/components/StarLookupModal";
+import DailyFortuneWidget from "@/components/DailyFortuneWidget"; import InputForm from "@/components/InputForm";
+import LaSoBanCo from "@/components/LaSoBanCo"; import StarLookupModal from "@/components/StarLookupModal";
 import MonthlyTimelinePanel from "@/components/MonthlyTimelinePanel";
 import LifeMapBookPanel from "@/components/LifeMapBookPanel";
 import CungDetail from "@/components/CungDetail";
@@ -15,6 +13,7 @@ import SynastryPanel from "@/components/SynastryPanel";
 import BirthHourRectifyPanel from "@/components/BirthHourRectifyPanel";
 import AiLuanPanel from "@/components/AiLuanPanel";
 import SideQuickNav from "@/components/SideQuickNav";
+import SeoKnowledgeSection from "@/components/SeoKnowledgeSection"; import FeedbackAndCommentsPanel from "@/components/FeedbackAndCommentsPanel";
 import { HoroscopeResult, CungItem } from "@/lib/types";
 import { getCurrentUser, saveChartToAccount, SavedChartEntry } from "@/lib/auth-store";
 import { setBaseTabTitle } from "@/lib/tab-notify";
@@ -93,6 +92,7 @@ export default function Home() {
           <div id="sec-chat"><AiLuanPanel result={result} selectedCung={selectedCung} externalPrompt={aiQueuedPrompt} onConsumedPrompt={() => setAiQueuedPrompt("")} /></div>
         </div>
       )}
+      <div className="relative z-10 w-full"><SeoKnowledgeSection /><FeedbackAndCommentsPanel /></div>
       <StarLookupModal starName={inspectedStar?.name || null} cungContext={inspectedStar?.cung} onClose={() => setInspectedStar(null)} onAskAi={setAiQueuedPrompt} />
     </main>
   );

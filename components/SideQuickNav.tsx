@@ -22,6 +22,7 @@ const SECTIONS = [
     { id: "sec-journal", label: "Nhật ký chiêm nghiệm", needResult: true },
     { id: "sec-synastry", label: "Hợp lá số đôi", needResult: true },
     { id: "sec-rectify", label: "Định giờ sinh ngược", needResult: true },
+    { id: "sec-feedback", label: "Góp ý & Báo lỗi" },
 ];
 
 export default function SideQuickNav({ hasResult, cungList, selectedChi, onSelectCung }: Props) {

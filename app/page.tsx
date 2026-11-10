@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import AuthBarAndModal from "@/components/AuthBarAndModal";
 import StarfieldBg from "@/components/StarfieldBg";
 import AppIntroCard from "@/components/AppIntroCard";
@@ -30,6 +30,7 @@ export default function Home() {
   const [toastCung, setToastCung] = useState("");
   const [inspectedStar, setInspectedStar] = useState<{ name: string; cung: string } | null>(null);
   const [aiQueuedPrompt, setAiQueuedPrompt] = useState("");
+  const bootedUidRef = useRef<string | null>(null);
   const handleGenerate = async (formData: any, isRemoteLoad = false) => {
     setLoading(true); setNamXem(formData.namXem); setLastForm(formData);
     try {
@@ -39,7 +40,7 @@ export default function Home() {
         const ck = buildChartKey(data.data.thien_ban);
         await pullProfileFromCloud(ck);
         setResult(data.data); setSelectedCung(data.data.cung_12[0]); setBaseTabTitle(data.data.thien_ban?.ho_ten, formData.namXem);
-        if (!isRemoteLoad) { saveChartToAccount(formData); pushProfileToCloud(ck, formData); }
+        if (!isRemoteLoad) { await pushProfileToCloud(ck, formData); await saveChartToAccount(formData); }
       } else alert(data.error || "Lỗi");
     } catch (err: any) { alert("Lỗi kết nối: " + err.message); }
     finally { setLoading(false); }
@@ -47,7 +48,9 @@ export default function Home() {
   useEffect(() => {
     const syncInitial = async () => {
       const u = getCurrentUser();
-      if (!u) return;
+      if (!u) { bootedUidRef.current = null; return; }
+      if (bootedUidRef.current === u.id) return;
+      bootedUidRef.current = u.id;
       const target = (await pullProfileFromCloud()) || u.savedCharts?.[0];
       if (target) handleGenerate(target, true);
     };
@@ -77,9 +80,9 @@ export default function Home() {
       <AuthBarAndModal onLoadSavedChart={(c: SavedChartEntry) => handleGenerate(c)} />
       <SideQuickNav hasResult={Boolean(result)} cungList={result?.cung_12 || []} selectedChi={selectedCung?.chi || ""} onSelectCung={handleSelectCung} />
       <div id="sec-intro" className="relative z-10 w-full"><AppIntroCard hasResult={Boolean(result)} /><DailyFortuneWidget onAskAi={result ? setAiQueuedPrompt : undefined} /></div>
-      <div id="sec-form" className="w-full"><InputForm onGenerate={(f) => handleGenerate(f, false)} loading={loading} /></div>
+      <div id="sec-form" className="relative z-10 w-full"><InputForm onGenerate={(f) => handleGenerate(f, false)} loading={loading} externalForm={lastForm} /></div>
       {result && (
-        <div className="w-full max-w-5xl space-y-6 mt-4">
+        <div className="relative z-10 w-full max-w-5xl space-y-6 mt-4">
           <div id="sec-board"><LaSoBanCo cungList={result.cung_12} thienBan={result.thien_ban} selectedChi={selectedCung?.chi || ""} onSelectCung={handleSelectCung} onInspectStar={(name: string, cung: string) => setInspectedStar({ name, cung })} /></div>
           <MonthlyTimelinePanel cungList={result.cung_12} thienBan={result.thien_ban} namXem={namXem} onSelectCung={handleSelectCung} onAskAi={setAiQueuedPrompt} />
           <div id="sec-lifemap"><LifeMapBookPanel result={result} /></div>

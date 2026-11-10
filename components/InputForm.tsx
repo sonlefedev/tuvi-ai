@@ -1,15 +1,14 @@
 // components/InputForm.tsx
 "use client";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
-
 interface Props {
     onGenerate?: (formData: any) => void;
     onSuccess?: (data: any) => void;
     loading?: boolean;
+    externalForm?: any;
 }
-
-export default function InputForm({ onGenerate, onSuccess, loading: propLoading }: Props) {
+export default function InputForm({ onGenerate, onSuccess, loading: propLoading, externalForm }: Props) {
     const [hoTen, setHoTen] = useState("");
     const [gioiTinh, setGioiTinh] = useState("Nam");
     const [ngay, setNgay] = useState("4");
@@ -19,7 +18,16 @@ export default function InputForm({ onGenerate, onSuccess, loading: propLoading 
     const [namXem, setNamXem] = useState("2026");
     const [localLoading, setLocalLoading] = useState(false);
     const loading = propLoading ?? localLoading;
-
+    useEffect(() => {
+        if (!externalForm) return;
+        if (externalForm.hoTen) setHoTen(externalForm.hoTen);
+        if (externalForm.gioiTinh) setGioiTinh(externalForm.gioiTinh);
+        if (externalForm.ngay) setNgay(String(externalForm.ngay));
+        if (externalForm.thang) setThang(String(externalForm.thang));
+        if (externalForm.nam) setNam(String(externalForm.nam));
+        if (externalForm.gio) setGio(externalForm.gio);
+        if (externalForm.namXem) setNamXem(String(externalForm.namXem));
+    }, [externalForm]);
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (loading) return;
@@ -28,10 +36,8 @@ export default function InputForm({ onGenerate, onSuccess, loading: propLoading 
         const y = Math.min(2100, Math.max(1900, Number(nam) || 2000));
         const nx = Math.max(y, Math.min(2100, Number(namXem) || 2026));
         setNgay(String(d)); setThang(String(m)); setNam(String(y)); setNamXem(String(nx));
-
         const payload = { hoTen: hoTen.trim() || "Đương số", gioiTinh, ngay: d, thang: m, nam: y, gio, namXem: nx };
         if (onGenerate) { onGenerate(payload); return; }
-
         setLocalLoading(true);
         try {
             const res = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
@@ -44,7 +50,6 @@ export default function InputForm({ onGenerate, onSuccess, loading: propLoading 
             setLocalLoading(false);
         }
     };
-
     return (
         <form onSubmit={handleSubmit} className="w-full max-w-5xl mx-auto p-4 bg-slate-900/80 rounded-2xl border border-slate-800 shadow-xl mb-6">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">

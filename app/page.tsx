@@ -13,6 +13,7 @@ import SynastryPanel from "@/components/SynastryPanel";
 import BirthHourRectifyPanel from "@/components/BirthHourRectifyPanel";
 import AiLuanPanel from "@/components/AiLuanPanel";
 import SideQuickNav from "@/components/SideQuickNav";
+import DailySeoArticleBanner from "@/components/DailySeoArticleBanner";
 import SeoKnowledgeSection from "@/components/SeoKnowledgeSection"; import FeedbackAndCommentsPanel from "@/components/FeedbackAndCommentsPanel";
 import { HoroscopeResult, CungItem } from "@/lib/types";
 import { getCurrentUser, saveChartToAccount, SavedChartEntry } from "@/lib/auth-store";
@@ -92,7 +93,7 @@ export default function Home() {
           <div id="sec-chat"><AiLuanPanel result={result} selectedCung={selectedCung} externalPrompt={aiQueuedPrompt} onConsumedPrompt={() => setAiQueuedPrompt("")} /></div>
         </div>
       )}
-      <div className="relative z-10 w-full"><SeoKnowledgeSection /><FeedbackAndCommentsPanel /></div>
+      <div className="relative z-10 w-full"><DailySeoArticleBanner /><SeoKnowledgeSection /><FeedbackAndCommentsPanel /></div>
       <StarLookupModal starName={inspectedStar?.name || null} cungContext={inspectedStar?.cung} onClose={() => setInspectedStar(null)} onAskAi={setAiQueuedPrompt} />
     </main>
   );

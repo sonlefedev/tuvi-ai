@@ -7,19 +7,24 @@ let visitSentForSession = false;
 
 function getIds() {
     let vid = localStorage.getItem("tuvi_vid");
+    const isReturning = Boolean(vid);
     if (!vid) { vid = "v_" + Math.random().toString(36).slice(2, 11); localStorage.setItem("tuvi_vid", vid); }
     let sid = sessionStorage.getItem("tuvi_sid");
     const isNewSession = !sid;
     if (!sid) { sid = "s_" + Math.random().toString(36).slice(2, 11); sessionStorage.setItem("tuvi_sid", sid); }
-    return { vid, sid, isNewSession };
+    return { vid, sid, isNewSession, isReturning };
 }
 
 function detectMeta() {
     const ua = navigator.userAgent || "";
-    const device = /Mobi|Android|iPhone|iPad/i.test(ua) ? "Mobile" : "Desktop";
+    const isMobile = /Mobi|Android|iPhone|iPad/i.test(ua);
+    const device = isMobile ? "Mobile" : "Desktop";
+    const os = /iPhone/i.test(ua) ? "iPhone (iOS)" : /iPad/i.test(ua) ? "iPad" : /Android/i.test(ua) ? ((ua.match(/Android[^;)]+;\s*([^;)]+)/)?.[1] || "Android").trim()) : /Windows/i.test(ua) ? "Windows PC" : /Mac OS X/i.test(ua) ? "MacBook / macOS" : "Linux";
+    const browser = /Zalo/i.test(ua) ? "Zalo" : /FBAN|FBAV/i.test(ua) ? "Facebook App" : /CocCoc/i.test(ua) ? "Cốc Cốc" : /Edg\//i.test(ua) ? "Edge" : /Chrome|CriOS/i.test(ua) ? "Chrome" : /Safari/i.test(ua) ? "Safari" : "Trình duyệt";
     const ref = document.referrer || "";
     const source = /Zalo/i.test(ua) ? "Zalo" : /FBAN|FBAV|facebook/i.test(ua + ref) ? "Facebook" : /google/i.test(ref) ? "Google" : ref ? "Liên kết khác" : "Trực tiếp";
-    return { device, source };
+    const screen = typeof window !== "undefined" ? `${window.innerWidth}×${window.innerHeight}` : "";
+    return { device, deviceLabel: `${os} • ${browser}`, screen, source };
 }
 
 export function trackFeature(featureKey: string, count = 1) {
@@ -29,16 +34,14 @@ export function trackFeature(featureKey: string, count = 1) {
 
 export function flushAnalytics(useBeacon = false) {
     if (typeof window === "undefined") return;
-    const { vid, sid, isNewSession } = getIds();
+    const { vid, sid, isNewSession, isReturning } = getIds();
     const sendVisit = isNewSession || !visitSentForSession;
-    const hasDwell = Object.keys(dwellBuffer).length > 0;
-    const hasFeat = Object.keys(featureBuffer).length > 0;
-    if (!sendVisit && !hasDwell && !hasFeat) return;
+    if (!sendVisit && !Object.keys(dwellBuffer).length && !Object.keys(featureBuffer).length) return;
 
     const payload = JSON.stringify({
         vid, sid,
         newVisit: sendVisit ? 1 : 0,
-        meta: sendVisit ? detectMeta() : undefined,
+        meta: sendVisit ? { ...detectMeta(), isReturning } : undefined,
         dwell: dwellBuffer,
         features: featureBuffer,
     });
@@ -46,27 +49,20 @@ export function flushAnalytics(useBeacon = false) {
     dwellBuffer = {};
     featureBuffer = {};
 
-    if (useBeacon && navigator.sendBeacon) {
-        navigator.sendBeacon("/api/analytics", new Blob([payload], { type: "application/json" }));
-    } else {
-        fetch("/api/analytics", { method: "POST", headers: { "Content-Type": "application/json" }, body: payload, keepalive: true }).catch(() => { });
-    }
+    if (useBeacon && navigator.sendBeacon) navigator.sendBeacon("/api/analytics", new Blob([payload], { type: "application/json" }));
+    else fetch("/api/analytics", { method: "POST", headers: { "Content-Type": "application/json" }, body: payload, keepalive: true }).catch(() => { });
 }
 
 export function startAnalyticsTracking(): () => void {
     const visibleRatios: Record<string, number> = {};
-    const io = new IntersectionObserver((entries) => {
-        for (const e of entries) visibleRatios[e.target.id] = e.isIntersecting ? e.intersectionRatio : 0;
-    }, { threshold: [0.15, 0.4, 0.7] });
-
+    const io = new IntersectionObserver((entries) => { for (const e of entries) visibleRatios[e.target.id] = e.isIntersecting ? e.intersectionRatio : 0; }, { threshold: [0.15, 0.4, 0.7] });
     const observeAll = () => SECTION_IDS.forEach((id) => { const el = document.getElementById(id); if (el) io.observe(el); });
     observeAll();
     const mo = new MutationObserver(observeAll);
     mo.observe(document.body, { childList: true, subtree: true });
 
     const onClick = (e: MouseEvent) => {
-        const btn = (e.target as HTMLElement)?.closest("button");
-        const txt = (btn?.textContent || "").toLowerCase();
+        const txt = ((e.target as HTMLElement)?.closest("button")?.textContent || "").toLowerCase();
         if (!txt) return;
         if (txt.includes("an sao")) trackFeature("An sao lập lá số");
         else if (txt.includes("đại cẩm nang") || txt.includes("viết lại trọn bộ") || txt.includes("viết bổ sung")) trackFeature("Lập Đại Cẩm Nang 8 chương");
@@ -90,6 +86,5 @@ export function startAnalyticsTracking(): () => void {
     window.addEventListener("pagehide", onHide);
     document.addEventListener("visibilitychange", () => { if (document.hidden) flushAnalytics(true); });
     flushAnalytics(false);
-
     return () => { io.disconnect(); mo.disconnect(); document.removeEventListener("click", onClick, true); clearInterval(tick); clearInterval(flushTimer); window.removeEventListener("pagehide", onHide); };
 }

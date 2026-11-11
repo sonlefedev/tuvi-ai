@@ -1,18 +1,18 @@
 // components/AuthBarAndModal.tsx
 "use client";
 import React, { useEffect, useState } from "react";
-import { BarChart3, BookmarkCheck, Cloud, CloudOff, KeyRound, Loader2, LogIn, LogOut, Megaphone, User, UserPlus, X } from "lucide-react";
+import { BarChart3, BookmarkCheck, Cloud, CloudOff, KeyRound, Loader2, LogIn, LogOut, Megaphone, ShieldAlert, User, UserPlus, X } from "lucide-react";
 import { getCurrentUser, isAdminUser, listLocalUsers, loginUser, logoutUser, registerUser, resetUserPassword, SavedChartEntry, UserAccount } from "@/lib/auth-store";
 import AnalyticsDashboardModal from "./AnalyticsDashboardModal";
 import AiMarketingModal from "./AiMarketingModal";
+import WatchdogCenterModal from "./WatchdogCenterModal";
 
 export default function AuthBarAndModal({ onLoadSavedChart }: { onLoadSavedChart: (c: SavedChartEntry) => void }) {
     const [user, setUser] = useState<UserAccount | null>(null);
     const [localList, setLocalList] = useState<UserAccount[]>([]);
     const [modalMode, setModalMode] = useState<"login" | "register" | "reset" | null>(null);
-    const [showStats, setShowStats] = useState(false);
-    const [showMarketing, setShowMarketing] = useState(false);
-    const [onlineCount, setOnlineCount] = useState(0);
+    const [panel, setPanel] = useState<"stats" | "marketing" | "watchdog" | null>(null);
+    const [badges, setBadges] = useState({ online: 0, issues: 0 });
     const [displayName, setDisplayName] = useState("");
     const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
@@ -20,7 +20,7 @@ export default function AuthBarAndModal({ onLoadSavedChart }: { onLoadSavedChart
     const [syncState, setSyncState] = useState<{ status: string; detail: string }>({ status: "synced", detail: "" });
 
     useEffect(() => {
-        const sync = () => { const cur = getCurrentUser(); setUser(cur); if (!isAdminUser(cur)) { setShowStats(false); setShowMarketing(false); } setLocalList(listLocalUsers()); };
+        const sync = () => { const cur = getCurrentUser(); setUser(cur); if (!isAdminUser(cur)) setPanel(null); setLocalList(listLocalUsers()); };
         const onSyncEvt = (e: any) => setSyncState(e.detail || { status: "synced", detail: "" });
         sync();
         window.addEventListener("tuvi-auth-changed", sync);
@@ -30,10 +30,14 @@ export default function AuthBarAndModal({ onLoadSavedChart }: { onLoadSavedChart
 
     const admin = isAdminUser(user);
     useEffect(() => {
-        if (!admin) { setOnlineCount(0); return; }
-        const ping = () => fetch(`/api/analytics?uid=${encodeURIComponent(user?.username || "")}`, { cache: "no-store" }).then((r) => r.json()).then((d) => setOnlineCount((d.liveVisitors || []).length)).catch(() => { });
+        if (!admin) { setBadges({ online: 0, issues: 0 }); return; }
+        const u = encodeURIComponent(user?.username || "");
+        const ping = async () => {
+            const [a, w] = await Promise.all([fetch(`/api/analytics?uid=${u}`).then((r) => r.json()).catch(() => ({})), fetch(`/api/watchdog?uid=${u}`).then((r) => r.json()).catch(() => ({}))]);
+            setBadges({ online: (a.liveVisitors || []).length, issues: (w.sysErrors?.length || 0) + (w.userBugs?.length || 0) });
+        };
         ping();
-        const id = setInterval(ping, 12000);
+        const id = setInterval(ping, 15000);
         return () => clearInterval(id);
     }, [admin, user?.username]);
 
@@ -53,15 +57,12 @@ export default function AuthBarAndModal({ onLoadSavedChart }: { onLoadSavedChart
                         <div className="flex flex-wrap items-center gap-2">
                             <span className="w-7 h-7 rounded-full bg-emerald-500/20 border border-emerald-400/50 text-emerald-300 font-black flex items-center justify-center uppercase">{user.displayName[0]}</span>
                             <span className="text-slate-200 font-bold">{user.displayName} <span className="text-slate-400 font-mono font-normal">(@{user.username})</span></span>
-                            <span title={syncState.detail} className={`text-[10.5px] px-2 py-0.5 rounded border inline-flex items-center gap-1 ${syncState.status === "error" ? "bg-rose-500/15 text-rose-300 border-rose-500/40" : "bg-emerald-500/15 text-emerald-300 border-emerald-500/30"}`}>
-                                {syncState.status === "syncing" ? <Loader2 className="w-3 h-3 animate-spin" /> : syncState.status === "error" ? <CloudOff className="w-3 h-3" /> : <Cloud className="w-3 h-3" />}
-                                {syncState.status === "syncing" ? "Đang lưu Cloud..." : syncState.status === "error" ? "Lỗi Cloud" : "Cloud Realtime"}
-                            </span>
-                            {user.savedCharts.length > 0 && <div className="flex flex-wrap items-center gap-1 ml-1"><span className="text-[11px] text-slate-400 flex items-center gap-1"><BookmarkCheck className="w-3.5 h-3.5 text-amber-400" /> Đã lưu:</span>{user.savedCharts.slice(0, 4).map((c) => <button key={c.id} type="button" onClick={() => onLoadSavedChart(c)} className="px-2 py-0.5 rounded-lg bg-slate-800 hover:bg-amber-500/20 text-amber-200 border border-slate-700 text-[11px] cursor-pointer">{c.hoTen} ({c.nam})</button>)}</div>}
+                            <span title={syncState.detail} className={`text-[10.5px] px-2 py-0.5 rounded border inline-flex items-center gap-1 ${syncState.status === "error" ? "bg-rose-500/15 text-rose-300 border-rose-500/40" : "bg-emerald-500/15 text-emerald-300 border-emerald-500/30"}`}>{syncState.status === "syncing" ? <Loader2 className="w-3 h-3 animate-spin" /> : syncState.status === "error" ? <CloudOff className="w-3 h-3" /> : <Cloud className="w-3 h-3" />}{syncState.status === "syncing" ? "Đang lưu..." : syncState.status === "error" ? "Lỗi Cloud" : "Cloud Realtime"}</span>
+                            {user.savedCharts.length > 0 && <div className="flex flex-wrap items-center gap-1 ml-1"><span className="text-[11px] text-slate-400 flex items-center gap-1"><BookmarkCheck className="w-3.5 h-3.5 text-amber-400" /> Đã lưu:</span>{user.savedCharts.slice(0, 3).map((c) => <button key={c.id} type="button" onClick={() => onLoadSavedChart(c)} className="px-2 py-0.5 rounded-lg bg-slate-800 hover:bg-amber-500/20 text-amber-200 border border-slate-700 text-[11px] cursor-pointer">{c.hoTen} ({c.nam})</button>)}</div>}
                         </div>
                         <div className="flex flex-wrap items-center gap-1.5">
-                            {admin && <><button type="button" onClick={() => setShowMarketing(true)} className="flex items-center gap-1 px-2.5 py-1 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/35 text-[11px] font-bold cursor-pointer"><Megaphone className="w-3.5 h-3.5" /> AI Quảng Cáo</button><button type="button" onClick={() => setShowStats(true)} className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-cyan-500/15 hover:bg-cyan-500/25 text-cyan-300 border border-cyan-500/35 text-[11px] font-bold cursor-pointer"><BarChart3 className="w-3.5 h-3.5" /> Thống kê <span className="px-1.5 py-0.2 rounded-full bg-emerald-500/25 text-emerald-300 text-[10px]">● {onlineCount}</span></button></>}
-                            <button type="button" onClick={logoutUser} className="flex items-center gap-1 px-3 py-1 rounded-xl bg-slate-800 hover:bg-rose-950/60 text-slate-300 hover:text-rose-300 text-[11px] font-semibold cursor-pointer"><LogOut className="w-3.5 h-3.5" /> Đăng xuất</button>
+                            {admin && <><button type="button" onClick={() => setPanel("watchdog")} className="flex items-center gap-1 px-2.5 py-1 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 border border-rose-500/35 text-[11px] font-bold cursor-pointer"><ShieldAlert className="w-3.5 h-3.5" /> Tra lỗi {badges.issues > 0 && <span className="px-1.5 rounded-full bg-rose-500 text-white text-[10px]">{badges.issues}</span>}</button><button type="button" onClick={() => setPanel("marketing")} className="flex items-center gap-1 px-2.5 py-1 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/35 text-[11px] font-bold cursor-pointer"><Megaphone className="w-3.5 h-3.5" /> Quảng cáo</button><button type="button" onClick={() => setPanel("stats")} className="flex items-center gap-1 px-2.5 py-1 rounded-xl bg-cyan-500/15 hover:bg-cyan-500/25 text-cyan-300 border border-cyan-500/35 text-[11px] font-bold cursor-pointer"><BarChart3 className="w-3.5 h-3.5" /> Thống kê <span className="px-1.5 rounded-full bg-emerald-500/25 text-emerald-300 text-[10px]">● {badges.online}</span></button></>}
+                            <button type="button" onClick={logoutUser} className="flex items-center gap-1 px-2.5 py-1 rounded-xl bg-slate-800 hover:bg-rose-950/60 text-slate-300 hover:text-rose-300 text-[11px] font-semibold cursor-pointer"><LogOut className="w-3.5 h-3.5" /> Thoát</button>
                         </div>
                     </>
                 ) : (
@@ -74,8 +75,9 @@ export default function AuthBarAndModal({ onLoadSavedChart }: { onLoadSavedChart
                     </>
                 )}
             </div>
-            {admin && showStats && <AnalyticsDashboardModal onClose={() => setShowStats(false)} />}
-            {admin && showMarketing && <AiMarketingModal onClose={() => setShowMarketing(false)} />}
+            {admin && panel === "stats" && <AnalyticsDashboardModal onClose={() => setPanel(null)} />}
+            {admin && panel === "marketing" && <AiMarketingModal onClose={() => setPanel(null)} />}
+            {admin && panel === "watchdog" && <WatchdogCenterModal onClose={() => setPanel(null)} />}
             {modalMode && (
                 <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
                     <form onSubmit={handleSubmit} className="w-full max-w-sm bg-slate-900 border border-slate-700 rounded-2xl p-5 space-y-3 text-xs shadow-2xl">

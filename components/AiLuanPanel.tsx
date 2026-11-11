@@ -52,7 +52,7 @@ export default function AiLuanPanel({ result, selectedCung, externalPrompt, onCo
         finally { setStreamingText(""); setLoading(false); }
     };
 
-    useEffect(() => { if (externalPrompt && store && !loading) { setOpen(true); askAi(externalPrompt); onConsumedPrompt?.(); } }, [externalPrompt, store]);
+    useEffect(() => { if (externalPrompt && store && !loading) { onConsumedPrompt?.(); setOpen(true); askAi(externalPrompt); } }, [externalPrompt, store]);
     if (!store) return null;
     const activeLabel = selectedCung ? `${selectedCung.ten_cung.replace("<THÂN>", "").trim()} • chi ${selectedCung.chi}` : "";
 

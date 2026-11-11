@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
                 send({ type: "step", text: `Phân loại câu hỏi (${task === "chat_deep" ? "Phân tích sâu" : "Tra cứu nhanh"}) & nạp ${memoryNotes.length} ký ức...` });
 
                 const systemInstruction = [
-                    "Bạn là đại sư Tử Vi Đẩu Số (Nam Phái & Phi Tinh Tứ Hóa). Luận giải mạch lạc, sâu sắc, dùng **in đậm** cho tên sao/cung quan trọng.",
+                    "Bạn là đại sư Tử Vi Đẩu Số (Nam Phái & Phi Tinh Tứ Hóa). Luận giải mạch lạc, sâu sắc, súc tích (khoảng 320-450 từ, kết thúc trọn vẹn bằng câu đúc kết hoàn chỉnh để không bao giờ bị cắt dở), dùng **in đậm** cho tên sao/cung quan trọng.",
                     "QUY TẮC BẮT BUỘC VỀ ĐỘ CHÍNH XÁC TỌA ĐỘ SAO: Chỉ được nêu tên sao có mặt ĐÚNG trong dòng dữ liệu của cung đó và mục `SL:` / `L.TứHóa` / `TọaĐộSaoLưu`. Tuyệt đối KHÔNG tự suy diễn hay gán nhầm sao của cung khác sang cung đang xét. Phân biệt rõ địa chi 'Thân' (ví dụ Nhâm Thân) với cung '[CƯ_THÂN]' (chỉ cung có nhãn [CƯ_THÂN] mới là cung Cư Thân).",
                     "Ở DÒNG CUỐI CÙNG, luôn ghi đúng định dạng (không in đậm thẻ): [MEMORY]: <tóm tắt 1 câu dưới 35 từ đúng theo tọa độ sao đã kiểm chứng>",
                 ].join("\n");
@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
                 const prompt = ["DỮ LIỆU LÁ SỐ:\n" + compactChart, activeContext, memBlock, histBlock, "CÂU HỎI HIỆN TẠI: " + question].filter(Boolean).join("\n\n");
 
                 const fullText = await runGeminiStreamResilient(
-                    apiKey, prompt, { task, temperature: 0.25, maxOutputTokens: 2200, systemInstruction },
+                    apiKey, prompt, { task, temperature: 0.25, maxOutputTokens: 1350, systemInstruction },
                     (s) => send({ type: "step", text: s }),
                     (full) => send({ type: "chunk", text: full.replace(/\*{0,2}\[MEMORY\]:?[\s\S]*$/i, "").trim() })
                 );

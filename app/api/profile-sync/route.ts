@@ -16,9 +16,9 @@ export async function GET(req: NextRequest) {
     const userId = req.nextUrl.searchParams.get("userId") || "";
     if (!SB_URL || !SB_KEY || (!key && !userId)) return NextResponse.json({ rows: [] });
     try {
-        const query = userId
-            ? `user_id=eq.${encodeURIComponent(userId)}&order=updated_at.desc&limit=8&select=profile_key,data,updated_at`
-            : `profile_key=eq.${encodeURIComponent(key)}&select=profile_key,data,updated_at`;
+        const query = key
+            ? `profile_key=eq.${encodeURIComponent(key)}${userId ? `&user_id=eq.${encodeURIComponent(userId)}` : ""}&select=profile_key,data,updated_at`
+            : `user_id=eq.${encodeURIComponent(userId)}&order=updated_at.desc&limit=8&select=profile_key,data,updated_at`;
         const res = await fetch(`${SB_URL}/rest/v1/tuvi_profiles?${query}`, { headers: sbHeaders(), cache: "no-store" });
         if (!res.ok) return NextResponse.json({ rows: [], error: await res.text() });
         const rows = await res.json();

@@ -1,9 +1,9 @@
 // components/AiLuanPanel.tsx
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Bot, BrainCircuit, GripHorizontal, Loader2, Maximize2, MessageSquareText, Minimize2, Send, Trash2, X } from "lucide-react";
 import { CungItem, HoroscopeResult } from "@/lib/types";
-import { compressLaSoToText, estimateTokens } from "@/lib/ai/compress-laso";
+import { estimateTokens } from "@/lib/ai/compress-laso";
 import { buildChartKey, buildChatContext, clearChartMemory, loadChartMemory, saveChartMemory, ChartMemoryState } from "@/lib/ai/tuvi-memory-store";
 import { streamAiEndpoint } from "@/lib/ai/stream-client";
 import { notifyTabStatus } from "@/lib/tab-notify";
@@ -13,7 +13,8 @@ import FormattedAiText from "./FormattedAiText";
 
 const QUICK_PROMPTS = ["Luận cung đang chọn", "Tổng quan Mệnh – Thân", "Sự nghiệp & Tài lộc", "Vận hạn năm nay"];
 
-export default function AiLuanPanel({ result, selectedCung, externalPrompt, onConsumedPrompt }: { result: HoroscopeResult; selectedCung?: CungItem | null; externalPrompt?: string; onConsumedPrompt?: () => void }) {
+export default function AiLuanPanel({ result, compactChart, selectedCung, externalPrompt, onConsumedPrompt }: { result: HoroscopeResult; compactChart: string; selectedCung?: CungItem | null; externalPrompt?: string; onConsumedPrompt?: () => void }) {
+    const analysisChartContext = useMemo(() => JSON.stringify({ thien_ban: result.thien_ban, cung_12: result.cung_12 }, null, 2), [result]);
     const [open, setOpen] = useState(false);
     const [question, setQuestion] = useState("");
     const [loading, setLoading] = useState(false);
@@ -23,13 +24,12 @@ export default function AiLuanPanel({ result, selectedCung, externalPrompt, onCo
     const box = useFloatingBox();
 
     useEffect(() => {
-        const compact = compressLaSoToText(result.thien_ban, result.cung_12);
         const key = buildChartKey(result.thien_ban);
-        const sync = () => { if (!loading) setStore(loadChartMemory(key, compact)); };
+        const sync = () => { if (!loading) setStore(loadChartMemory(key, compactChart)); };
         sync();
         window.addEventListener("tuvi-memory-updated", sync);
         return () => window.removeEventListener("tuvi-memory-updated", sync);
-    }, [result, loading]);
+    }, [result, compactChart, loading]);
 
     const askAi = async (q: string) => {
         const cleanQ = q.trim();
@@ -43,7 +43,7 @@ export default function AiLuanPanel({ result, selectedCung, externalPrompt, onCo
         const nextMessages = [...latest.messages, { role: "user" as const, text: cleanQ, ts: Date.now() }];
         setStore({ ...latest, messages: nextMessages });
         try {
-            const data = await streamAiEndpoint("/api/ai-luan", { compactChart: latest.compactChart, memoryNotes: latest.memoryNotes, history: recentHistory, activeContext, question: cleanQ }, (s) => setSteps((p) => [...p, s]), setStreamingText);
+            const data = await streamAiEndpoint("/api/ai-luan", { chartContext: analysisChartContext, memoryNotes: latest.memoryNotes, history: recentHistory, activeContext, question: cleanQ }, (s) => setSteps((p) => [...p, s]), setStreamingText);
             if (data?.answer) {
                 const updated: ChartMemoryState = { ...latest, messages: [...nextMessages, { role: "ai", text: data.answer, ts: Date.now() }], memoryNotes: data.memoryNote ? [...latest.memoryNotes, data.memoryNote] : latest.memoryNotes };
                 setStore(updated); saveChartMemory(updated); notifyTabStatus("🔔 (1) AI đã trả lời xong!");
@@ -71,7 +71,7 @@ export default function AiLuanPanel({ result, selectedCung, externalPrompt, onCo
                     <div onPointerDown={(e) => box.startAction(e, "b")} className="absolute bottom-0 left-2 right-2 h-1.5 cursor-ns-resize z-20" />
                     <div onPointerDown={(e) => box.startAction(e, "br")} title="Kéo để thay đổi kích thước" className="absolute right-0 bottom-0 w-3.5 h-3.5 cursor-nwse-resize z-30" />
                     <div onPointerDown={(e) => box.startAction(e, "drag")} className="px-3.5 py-2.5 bg-slate-950/95 border-b border-slate-800 flex justify-between items-center cursor-move select-none touch-none">
-                        <div className="flex items-center gap-2"><GripHorizontal className="w-4 h-4 text-slate-500 shrink-0" /><Bot className="w-4 h-4 text-purple-400 shrink-0" /><div><div className="font-bold text-xs text-purple-300">Trợ Lý AI Tử Vi & Ký Ức</div><div className="text-[10px] text-slate-400">~{estimateTokens(store.compactChart)} tok • {store.memoryNotes.length} ký ức{activeLabel ? ` • Cung ${activeLabel}` : ""}</div></div></div>
+                        <div className="flex items-center gap-2"><GripHorizontal className="w-4 h-4 text-slate-500 shrink-0" /><Bot className="w-4 h-4 text-purple-400 shrink-0" /><div><div className="font-bold text-xs text-purple-300">Trợ Lý AI Tử Vi & Ký Ức</div><div className="text-[10px] text-slate-400">~{estimateTokens(analysisChartContext).toLocaleString("vi-VN")} tok ước tính • {store.memoryNotes.length} ký ức{activeLabel ? ` • Cung ${activeLabel}` : ""}</div></div></div>
                         <div className="flex items-center gap-1">
                             <button type="button" onClick={() => box.stepFont(-1)} className="px-1.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-[10px] font-bold cursor-pointer">A-</button>
                             <button type="button" onClick={() => box.stepFont(1)} className="px-1.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-[11px] font-bold cursor-pointer">A+</button>

@@ -11,7 +11,7 @@ const NON_TEXT = /image|tts|transcribe|live|omni|embedding|robotics|veo|lyria|aq
 
 export function classifyChatTask(question: string): AiTaskKind {
     const q = (question || "").trim().toLowerCase();
-    const isComplex = q.length > 85 || /tại sao|vì sao|so sánh|phân tích sâu|chiến lược|hóa giải|đại vận|tổng hợp|toàn diện|nghiệp|tương quan|xung chiếu|tam hợp/.test(q);
+    const isComplex = q.length > 85 || /tại sao|vì sao|so sánh|phân tích sâu|chiến lược|kim chỉ nam|định hướng|thành công|phát triển|luận cung|cung đang chọn|tổng quan|toàn diện|nhiều khía cạnh|trọn đời|đại vận|vận hạn|năm nay|lưu niên|hôn nhân|gia đạo|sức khỏe|tài lộc|tài chính|tiền bạc|tổng hợp|nghiệp|tương quan|xung chiếu|tam hợp/.test(q);
     return isComplex ? "chat_deep" : "chat_quick";
 }
 
@@ -35,6 +35,7 @@ function rankModelsForTask(all: string[], task: AiTaskKind): string[] {
     const pro = pick(PRO_ORDER), flash = pick(FLASH_ORDER), lite = pick(LITE_ORDER);
     const primary =
         task === "chart_json" || task === "chat_quick" ? [...lite, ...flash, ...pro] :
+        task === "chat_deep" ? [...pro, ...flash, ...lite] :
         [...flash, ...lite, ...pro];
     return [...new Set([...primary, ...all])];
 }

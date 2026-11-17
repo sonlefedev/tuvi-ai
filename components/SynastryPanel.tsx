@@ -8,12 +8,13 @@ import { getCurrentUser, SavedChartEntry } from "@/lib/auth-store";
 import { buildChartKey } from "@/lib/ai/tuvi-memory-store";
 import { pushProfileToCloud } from "@/lib/ai/cloud-profile-sync";
 import { streamAiEndpoint } from "@/lib/ai/stream-client";
+import { createDataFlowId, emitDataFlowTrace, summarizeDataFlowPayload } from "@/lib/data-flow-trace";
 import { trackFeature } from "@/lib/analytics-client";
 import FormattedAiText from "./FormattedAiText";
 
 const HOURS = ["Tý (23h-01h)", "Sửu (01h-03h)", "Dần (03h-05h)", "Mão (05h-07h)", "Thìn (07h-09h)", "Tỵ (09h-11h)", "Ngọ (11h-13h)", "Mùi (13h-15h)", "Thân (15h-17h)", "Dậu (17h-19h)", "Tuất (19h-21h)", "Hợi (21h-23h)"];
 
-export default function SynastryPanel({ resultA }: { resultA: HoroscopeResult }) {
+export default function SynastryPanel({ resultA, compactChart }: { resultA: HoroscopeResult; compactChart: string }) {
     const [relation, setRelation] = useState("Vợ chồng / Tình duyên");
     const [saved, setSaved] = useState<SavedChartEntry[]>([]);
     const [nameB, setNameB] = useState("");
@@ -53,16 +54,25 @@ export default function SynastryPanel({ resultA }: { resultA: HoroscopeResult })
     const compare = async (e: React.FormEvent) => {
         e.preventDefault();
         if (loading) return;
+        const flowId = createDataFlowId();
+        const formB = { hoTen: nameB.trim() || "Người B", gioiTinh: genderB, ngay: Number(dayB), thang: Number(monthB), nam: Number(yearB), gio: hourB, namXem: resultA.thien_ban.nam_xem || 2026 };
+        emitDataFlowTrace({ flowId, stage: "browser", status: "success", title: "Bắt đầu đối chiếu hai lá số", detail: `Chuẩn bị lập lá số B và so sánh với ${resultA.thien_ban.ho_ten}.`, payload: summarizeDataFlowPayload(formB) });
         setLoading(true); setOutput(""); setStep("Đang lập lá số người thứ 2...");
         try {
-            const genRes = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ hoTen: nameB.trim() || "Người B", gioiTinh: genderB, ngay: Number(dayB), thang: Number(monthB), nam: Number(yearB), gio: hourB, namXem: resultA.thien_ban.nam_xem || 2026 }) });
+            emitDataFlowTrace({ flowId, stage: "api", status: "active", title: "Gửi thông tin lá số B", detail: "POST /api/generate", payload: summarizeDataFlowPayload(formB) });
+            const genRes = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(formB) });
             const genData = await genRes.json();
-            if (!genData.success) throw new Error(genData.error || "Lỗi lập lá số B");
-            const chartA = compressLaSoToText(resultA.thien_ban, resultA.cung_12);
+            if (!genRes.ok || !genData.success) throw new Error(genData.error || "Lỗi lập lá số B");
+            emitDataFlowTrace({ flowId, stage: "api", status: "success", title: "API đã trả lá số B", detail: `HTTP ${genRes.status}` });
+            emitDataFlowTrace({ flowId, stage: "calculation", status: "success", title: "Đã an sao lá số B", detail: `Kết quả gồm ${genData.data?.cung_12?.length || 0} cung.` });
+            const chartA = compactChart;
             const chartB = compressLaSoToText(genData.data.thien_ban, genData.data.cung_12);
             const res = await streamAiEndpoint("/api/ai-synastry", { chartA, chartB, relation }, setStep, setOutput);
             if (res?.reply) { setOutput(res.reply); localStorage.setItem(cacheKey, res.reply); await pushProfileToCloud(chartKey); }
-        } catch (err: any) { alert(err?.message || "Lỗi đối chiếu"); }
+        } catch (err: any) {
+            emitDataFlowTrace({ flowId, stage: "calculation", status: "error", title: "Đối chiếu thất bại", detail: err?.message || "Không thể hoàn tất so sánh." });
+            alert(err?.message || "Lỗi đối chiếu");
+        }
         finally { setLoading(false); }
     };
 

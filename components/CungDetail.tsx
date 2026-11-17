@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import { CungItem, ThienBanData } from "@/lib/types";
 import { DIA_CHI } from "@/lib/tuvi/can-chi";
 import { phanTichCung } from "@/lib/luan-giai-cung";
-import { compressCungCoDinh, compressLaSoToText } from "@/lib/ai/compress-laso";
+import { compressCungCoDinh } from "@/lib/ai/compress-laso";
 import { buildChartKey } from "@/lib/ai/tuvi-memory-store";
 import { CungAiReading, getCachedCungAi, saveCachedCungAi } from "@/lib/ai/cung-ai-store";
 import { isOperationLockedRemotely, setOperationLock } from "@/lib/ai/cloud-profile-sync";
@@ -14,9 +14,9 @@ import AiProgressLog from "./AiProgressLog";
 import CungReadingTabs from "./CungReadingTabs";
 import { Compass, Loader2, RefreshCw, Sparkles } from "lucide-react";
 
-interface Props { cung: CungItem; cungList?: CungItem[]; thienBan?: ThienBanData; tongQuan?: any; namXem: number; }
+interface Props { cung: CungItem; cungList?: CungItem[]; thienBan?: ThienBanData; compactChart: string; tongQuan?: any; namXem: number; }
 
-export default function CungDetail({ cung, cungList = [], thienBan, namXem }: Props) {
+export default function CungDetail({ cung, cungList = [], thienBan, compactChart, namXem }: Props) {
     const info = phanTichCung(cung, cungList, namXem);
     const [aiReading, setAiReading] = useState<CungAiReading | null>(null);
     const [loading, setLoading] = useState(false);
@@ -50,7 +50,7 @@ export default function CungDetail({ cung, cungList = [], thienBan, namXem }: Pr
             const data = await streamAiEndpoint("/api/ai-cung", { fixedContext, cungName: cung.ten_cung, cungChi: cung.can_cung || cung.chi }, (s) => setSteps((p) => [...p, s]), (c) => setSteps((p) => [...p.slice(0, -1), c]));
             if (data?.reading) {
                 setAiReading(data.reading);
-                saveCachedCungAi(chartKey, cung.chi, compressLaSoToText(thienBan, cungList), data.reading, data.memoryNote);
+                saveCachedCungAi(chartKey, cung.chi, compactChart, data.reading, data.memoryNote);
                 notifyTabStatus(`🔔 (1) Đã luận xong cung ${cung.ten_cung}!`);
             }
         } catch (e: any) { notifyTabStatus("⚠️ Lỗi luận cung AI", 3000); setErrMsg(e?.message || "Không thể gọi AI luận cung"); }

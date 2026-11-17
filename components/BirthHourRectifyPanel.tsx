@@ -7,6 +7,7 @@ import { compressLaSoToText } from "@/lib/ai/compress-laso";
 import { buildChartKey } from "@/lib/ai/tuvi-memory-store";
 import { pushProfileToCloud } from "@/lib/ai/cloud-profile-sync";
 import { streamAiEndpoint } from "@/lib/ai/stream-client";
+import { createDataFlowId, emitDataFlowTrace, summarizeDataFlowPayload } from "@/lib/data-flow-trace";
 import FormattedAiText from "./FormattedAiText";
 
 const HOURS = ["Tý (23h-01h)", "Sửu (01h-03h)", "Dần (03h-05h)", "Mão (05h-07h)", "Thìn (07h-09h)", "Tỵ (09h-11h)", "Ngọ (11h-13h)", "Mùi (13h-15h)", "Thân (15h-17h)", "Dậu (17h-19h)", "Tuất (19h-21h)", "Hợi (21h-23h)"];
@@ -35,16 +36,26 @@ export default function BirthHourRectifyPanel({ baseForm, thienBan, onApplyHour 
     const runRectify = async (e: React.FormEvent) => {
         e.preventDefault();
         if (loading || selectedHours.length < 2 || !clues.trim()) return;
+        const flowId = createDataFlowId();
+        emitDataFlowTrace({ flowId, stage: "browser", status: "success", title: "Bắt đầu định giờ sinh", detail: `Lập và so sánh ${selectedHours.length} lá số ứng viên.` });
         setLoading(true); setReply(""); setStep("Đang lập lá số các khung giờ ứng viên...");
         try {
             const candidates = await Promise.all(selectedHours.map(async (h) => {
-                const r = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...baseForm, gio: h }) });
+                const candidateForm = { ...baseForm, gio: h };
+                emitDataFlowTrace({ flowId, stage: "api", status: "active", title: `Lập lá số ứng viên giờ ${h.split(" ")[0]}`, detail: "POST /api/generate", payload: summarizeDataFlowPayload(candidateForm) });
+                const r = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(candidateForm) });
                 const j = await r.json();
+                if (!r.ok || !j.success) throw new Error(j.error || `Không lập được lá số giờ ${h}.`);
+                emitDataFlowTrace({ flowId, stage: "api", status: "success", title: `API đã trả lá số giờ ${h.split(" ")[0]}`, detail: `HTTP ${r.status}` });
+                emitDataFlowTrace({ flowId, stage: "calculation", status: "success", title: `Đã an sao giờ ${h.split(" ")[0]}`, detail: `Kết quả gồm ${j.data?.cung_12?.length || 0} cung.` });
                 return { hour: h, compact: compressLaSoToText(j.data.thien_ban, j.data.cung_12) };
             }));
             const res = await streamAiEndpoint("/api/ai-rectify", { candidates, clues: clues.trim() }, setStep, setReply);
             if (res?.reply) { setReply(res.reply); localStorage.setItem(cacheKey, res.reply); await pushProfileToCloud(chartKey); }
-        } catch (err: any) { alert(err?.message || "Lỗi định giờ sinh"); }
+        } catch (err: any) {
+            emitDataFlowTrace({ flowId, stage: "calculation", status: "error", title: "Định giờ sinh thất bại", detail: err?.message || "Không thể hoàn tất so sánh." });
+            alert(err?.message || "Lỗi định giờ sinh");
+        }
         finally { setLoading(false); }
     };
 

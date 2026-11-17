@@ -3,7 +3,6 @@
 import React, { useEffect, useState } from "react";
 import { BarChart3, Loader2, RefreshCw, Sparkles } from "lucide-react";
 import { HoroscopeResult } from "@/lib/types";
-import { compressLaSoToText } from "@/lib/ai/compress-laso";
 import { buildChartKey } from "@/lib/ai/tuvi-memory-store";
 import { ChartKind, getSavedCharts, saveChartSpec, TuviChartSpec } from "@/lib/ai/chart-store";
 import { isOperationLockedRemotely, setOperationLock } from "@/lib/ai/cloud-profile-sync";
@@ -20,7 +19,7 @@ const LAYERS = [
 ];
 const ASPECT_PRESETS = ["Sự nghiệp & Thăng tiến", "Tài chính & Đầu tư", "Tình duyên & Gia đạo", "Sức khỏe & Tinh thần", "Biến động 12 tháng T1–T12"];
 
-export default function TuviChartsPanel({ result }: { result: HoroscopeResult }) {
+export default function TuviChartsPanel({ result, compactChart }: { result: HoroscopeResult; compactChart: string }) {
     const [layerId, setLayerId] = useState("codinh");
     const [customAspect, setCustomAspect] = useState("");
     const [activeSpec, setActiveSpec] = useState<TuviChartSpec | null>(null);
@@ -28,7 +27,6 @@ export default function TuviChartsPanel({ result }: { result: HoroscopeResult })
     const [loading, setLoading] = useState(false);
     const [remoteBusy, setRemoteBusy] = useState(false);
     const [steps, setSteps] = useState<string[]>([]);
-    const compactChart = compressLaSoToText(result.thien_ban, result.cung_12);
     const chartKey = buildChartKey(result.thien_ban);
     const curLayer = LAYERS.find((l) => l.id === layerId) || LAYERS[0];
 

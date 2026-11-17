@@ -1,5 +1,6 @@
 // lib/ai/cloud-profile-sync.ts
 import { getCurrentUser } from "../auth-store";
+import { createDataFlowId, emitDataFlowTrace, summarizeDataFlowPayload } from "../data-flow-trace";
 const LOCK_TTL_MS = 95000;
 let isPushing = false;
 let lastLocalWriteAt = 0;
@@ -15,7 +16,11 @@ function emitSyncStatus(status: "syncing" | "synced" | "error", detail = "") {
 export async function pushProfileToCloud(chartKey: string, formData?: any): Promise<boolean> {
     if (typeof window === "undefined") return false;
     const user = getCurrentUser();
-    if (!user || !chartKey) return false;
+    const flowId = createDataFlowId();
+    if (!user || !chartKey) {
+        if (chartKey) emitDataFlowTrace({ flowId, stage: "memory", status: "info", title: "Giữ dữ liệu trên thiết bị", detail: "Chưa đăng nhập; profile không được gửi lên Cloud." });
+        return false;
+    }
     lastLocalWriteAt = Date.now();
     isPushing = true;
     emitSyncStatus("syncing");
@@ -29,16 +34,28 @@ export async function pushProfileToCloud(chartKey: string, formData?: any): Prom
         const rectify = localStorage.getItem(`${chartKey}_rectify_v1`) || "";
         const lastForm = formData || JSON.parse(localStorage.getItem(`${chartKey}_form_v1`) || "null");
         if (formData) localStorage.setItem(`${chartKey}_form_v1`, JSON.stringify(formData));
+        const requestBody = { profileKey: chartKey, userId: user.id, data: { mem, lifeMap, charts, busyLocks, lastForm, journal, synastry, rectify } };
+        emitDataFlowTrace({ flowId, stage: "packaging", status: "success", title: "Đóng gói profile Cloud", detail: `${Object.keys(requestBody.data).length} nhóm dữ liệu trong profile.`, payload: summarizeDataFlowPayload(requestBody) });
+        emitDataFlowTrace({ flowId, stage: "cloud", status: "active", title: "Đang đồng bộ lên Cloud", detail: "POST /api/profile-sync" });
         const res = await fetch("/api/profile-sync", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ profileKey: chartKey, userId: user.id, data: { mem, lifeMap, charts, busyLocks, lastForm, journal, synastry, rectify } }),
+            body: JSON.stringify(requestBody),
         });
         const j = await res.json();
-        if (!res.ok || !j.ok) { emitSyncStatus("error", j.error || "Không lưu được Cloud"); return false; }
+        if (!res.ok || !j.ok) {
+            emitSyncStatus("error", j.error || "Không lưu được Cloud");
+            emitDataFlowTrace({ flowId, stage: "cloud", status: "error", title: "Đồng bộ Cloud thất bại", detail: j.error || "Không lưu được profile." });
+            return false;
+        }
         emitSyncStatus("synced");
+        emitDataFlowTrace({ flowId, stage: "cloud", status: "success", title: "Đã đồng bộ Cloud", detail: "Profile đã được máy chủ xác nhận lưu." });
         return true;
-    } catch (e: any) { emitSyncStatus("error", e?.message || "Lỗi mạng"); return false; }
+    } catch (e: any) {
+        emitSyncStatus("error", e?.message || "Lỗi mạng");
+        emitDataFlowTrace({ flowId, stage: "cloud", status: "error", title: "Đồng bộ Cloud gặp lỗi", detail: e?.message || "Lỗi mạng." });
+        return false;
+    }
     finally { isPushing = false; lastLocalWriteAt = Date.now(); }
 }
 export async function setOperationLock(chartKey: string, lockId: string, busy: boolean): Promise<void> {
@@ -64,23 +81,39 @@ export function isOperationLockedRemotely(chartKey: string, lockId: string, isLo
         return ts > 0 && Date.now() - ts < LOCK_TTL_MS;
     } catch { return false; }
 }
-export async function pullProfileFromCloud(chartKey?: string): Promise<any | null> {
+export async function pullProfileFromCloud(chartKey?: string, shouldTrace = true): Promise<any | null> {
     if (typeof window === "undefined" || isPushing || Date.now() - lastLocalWriteAt < 2500) return null;
     const user = getCurrentUser();
-    if (!user) return null;
+    const flowId = shouldTrace ? createDataFlowId() : "";
+    const trace = (stage: "cloud" | "memory", status: "active" | "success" | "error" | "info", title: string, detail: string, payload?: ReturnType<typeof summarizeDataFlowPayload>) => {
+        if (shouldTrace) emitDataFlowTrace({ flowId, stage, status, title, detail, payload });
+    };
+    if (!user) {
+        trace("memory", "info", "Bỏ qua Cloud", "Chưa đăng nhập; dữ liệu tiếp tục được dùng từ thiết bị.");
+        return null;
+    }
     try {
+        trace("cloud", "active", "Đang tải profile Cloud", chartKey ? "Tìm profile của lá số hiện tại." : "Tìm profile gần nhất trong tài khoản.");
         const res = await fetch(`/api/profile-sync?userId=${encodeURIComponent(user.id)}&key=${encodeURIComponent(chartKey || "")}`, { cache: "no-store" });
-        const { rows } = await res.json();
-        if (!Array.isArray(rows) || rows.length === 0) return null;
+        const response = await res.json();
+        if (!res.ok) throw new Error(response.error || "Không tải được profile Cloud.");
+        const { rows } = response;
+        if (!Array.isArray(rows) || rows.length === 0) {
+            trace("cloud", "info", "Không có profile Cloud", "Chưa tìm thấy profile phù hợp.");
+            return null;
+        }
         const exact = chartKey ? rows.find((r: any) => r.profile_key === chartKey) : null;
+        if (chartKey && !exact) {
+            trace("cloud", "info", "Không khớp chart trên Cloud", "Không ghi đè bộ nhớ của lá số hiện tại.");
+            return null;
+        }
         const primary = exact || rows[0];
         const targetKey = chartKey || primary.profile_key;
-        const allReadings = rows.reduce((acc: any, r: any) => ({ ...acc, ...(r.data?.mem?.cungReadings || {}) }), {});
         const d = primary.data || {};
         if (targetKey) {
             const localMem = JSON.parse(localStorage.getItem(targetKey) || "{}");
             const mergedMsgs = (d.mem?.messages?.length || 0) >= (localMem.messages?.length || 0) ? (d.mem?.messages || []) : localMem.messages;
-            const mergedMem = { ...localMem, ...(d.mem || {}), messages: mergedMsgs, cungReadings: { ...(localMem.cungReadings || {}), ...allReadings }, memoryNotes: [...new Set([...(localMem.memoryNotes || []), ...(d.mem?.memoryNotes || [])])].slice(-12) };
+            const mergedMem = { ...localMem, ...(d.mem || {}), messages: mergedMsgs, cungReadings: { ...(localMem.cungReadings || {}), ...(d.mem?.cungReadings || {}) }, memoryNotes: [...new Set([...(localMem.memoryNotes || []), ...(d.mem?.memoryNotes || [])])].slice(-12) };
             localStorage.setItem(targetKey, JSON.stringify(mergedMem));
             if (d.lifeMap) localStorage.setItem(`${targetKey}_lifemap_v1`, JSON.stringify(d.lifeMap));
             if (Array.isArray(d.journal)) localStorage.setItem(`${targetKey}_journal_v1`, JSON.stringify(d.journal));
@@ -89,7 +122,12 @@ export async function pullProfileFromCloud(chartKey?: string): Promise<any | nul
             if (d.charts) localStorage.setItem(`${targetKey}_charts_v1`, JSON.stringify({ ...JSON.parse(localStorage.getItem(`${targetKey}_charts_v1`) || "{}"), ...d.charts }));
             localStorage.setItem(`${targetKey}_locks_v1`, JSON.stringify(d.busyLocks || {}));
             window.dispatchEvent(new Event("tuvi-memory-updated"));
+            trace("memory", "success", "Đã nhập profile vào bộ nhớ", "Gộp dữ liệu Cloud vào localStorage của chart hiện tại.", summarizeDataFlowPayload(d));
         }
+        trace("cloud", "success", "Tải profile hoàn tất", "Dữ liệu Cloud đã được đối chiếu với chart hiện tại.");
         return d.lastForm || null;
-    } catch { return null; }
+    } catch (error) {
+        trace("cloud", "error", "Tải profile gặp lỗi", error instanceof Error ? error.message : "Lỗi không xác định.");
+        return null;
+    }
 }

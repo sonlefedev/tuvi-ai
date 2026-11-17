@@ -1,6 +1,7 @@
 // lib/ai/tuvi-memory-store.ts
 import { getCurrentUser } from "../auth-store";
 import { pushProfileToCloud } from "./cloud-profile-sync";
+import { createDataFlowId, emitDataFlowTrace, summarizeDataFlowPayload } from "../data-flow-trace";
 
 export interface ChatTurn { role: "user" | "ai"; text: string; ts: number; }
 export interface CungAiReading { chinhTinhBanCung: string; phuTinhTuongTac: string; tamHopXungChieu: string; nhiHopGiapPhiHoa: string; ducKetLoiKhuyen: string; }
@@ -47,21 +48,32 @@ export function loadChartMemory(chartKey: string, compactChart: string): ChartMe
 
 export function saveChartMemory(state: ChartMemoryState): void {
     if (typeof window === "undefined") return;
+    const flowId = createDataFlowId();
     const trimmed: ChartMemoryState = { ...state, memoryNotes: [...new Set(state.memoryNotes)].slice(-12), messages: state.messages.slice(-20) };
     const payload = JSON.stringify(trimmed);
-    try { localStorage.setItem(state.chartKey, payload); } catch {
-        Object.keys(localStorage).filter((k) => k.startsWith(PREFIX) && k !== state.chartKey).forEach((k) => localStorage.removeItem(k));
-        try { localStorage.setItem(state.chartKey, payload); } catch { }
+    try {
+        localStorage.setItem(state.chartKey, payload);
+    } catch {
+        try {
+            Object.keys(localStorage).filter((k) => k.startsWith(PREFIX) && k !== state.chartKey).forEach((k) => localStorage.removeItem(k));
+            localStorage.setItem(state.chartKey, payload);
+        } catch (error) {
+            emitDataFlowTrace({ flowId, stage: "memory", status: "error", title: "Không lưu được ký ức", detail: error instanceof Error ? error.message : "Không thể ghi vào bộ nhớ trình duyệt." });
+            return;
+        }
     }
     window.dispatchEvent(new Event("tuvi-memory-updated"));
+    emitDataFlowTrace({ flowId, stage: "memory", status: "success", title: "Đã lưu ký ức trên thiết bị", detail: `${trimmed.messages.length} lượt chat · ${trimmed.memoryNotes.length} ghi chú AI.`, payload: summarizeDataFlowPayload(trimmed) });
     pushProfileToCloud(state.chartKey);
 }
 
 export async function clearChartMemory(chartKey: string): Promise<void> {
     if (typeof window === "undefined") return;
+    const flowId = createDataFlowId();
     const prev = loadChartMemory(chartKey, "");
     const cleared: ChartMemoryState = { ...prev, memoryNotes: [], messages: [] };
     localStorage.setItem(chartKey, JSON.stringify(cleared));
     window.dispatchEvent(new Event("tuvi-memory-updated"));
+    emitDataFlowTrace({ flowId, stage: "memory", status: "success", title: "Đã xóa ký ức trên thiết bị", detail: "Lịch sử chat và ghi chú AI của chart hiện tại đã được xóa." });
     await pushProfileToCloud(chartKey);
 }

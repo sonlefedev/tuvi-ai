@@ -1,4 +1,6 @@
 // lib/auth-store.ts
+import { createDataFlowId, emitDataFlowTrace, summarizeDataFlowPayload } from "./data-flow-trace";
+
 export interface SavedChartEntry { id: string; hoTen: string; gioiTinh: string; ngay: number; thang: number; nam: number; gio: string; namXem: number; }
 export interface UserAccount { id: string; displayName: string; username: string; passHash: string; savedCharts: SavedChartEntry[]; isAdmin?: boolean; }
 
@@ -68,5 +70,13 @@ export async function saveChartToAccount(entry: Omit<SavedChartEntry, "id">): Pr
     const chartId = `${entry.hoTen}_${entry.ngay}_${entry.thang}_${entry.nam}_${entry.gio}`.toLowerCase();
     const nextCharts = [{ ...entry, id: chartId }, ...(user.savedCharts || []).filter((c) => c.id !== chartId)].slice(0, 15);
     cacheLocalUser({ ...user, savedCharts: nextCharts });
-    await callAuthApi({ action: "sync_charts", id: user.id, savedCharts: nextCharts }).catch(() => { });
+    const flowId = createDataFlowId();
+    emitDataFlowTrace({ flowId, stage: "memory", status: "success", title: "Lưu lá số vào tài khoản trên thiết bị", detail: `${nextCharts.length} lá số đang được giữ trong danh sách tài khoản.`, payload: summarizeDataFlowPayload({ savedCharts: nextCharts }) });
+    emitDataFlowTrace({ flowId, stage: "api", status: "active", title: "Đồng bộ danh sách lá số", detail: "POST /api/auth · sync_charts" });
+    try {
+        await callAuthApi({ action: "sync_charts", id: user.id, savedCharts: nextCharts });
+        emitDataFlowTrace({ flowId, stage: "cloud", status: "success", title: "Đã đồng bộ danh sách lá số", detail: "Tài khoản đã xác nhận cập nhật savedCharts." });
+    } catch (error) {
+        emitDataFlowTrace({ flowId, stage: "cloud", status: "error", title: "Không đồng bộ được danh sách lá số", detail: error instanceof Error ? error.message : "Lỗi không xác định." });
+    }
 }

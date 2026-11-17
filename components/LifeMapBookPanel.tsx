@@ -3,7 +3,6 @@
 import React, { useEffect, useState } from "react";
 import { AlertTriangle, BookMarked, Download, Loader2, Maximize2, Minimize2, RefreshCw, Sparkles } from "lucide-react";
 import { HoroscopeResult } from "@/lib/types";
-import { compressLaSoToText } from "@/lib/ai/compress-laso";
 import { buildChartKey, loadChartMemory, saveChartMemory } from "@/lib/ai/tuvi-memory-store";
 import { downloadLifeMapBook } from "@/lib/export-lifemap";
 import { LIFE_CHAPTERS, ChapterKey, normalizeLifeMap, countLifeMapChars, isLegacyOnlyCache } from "@/lib/ai/lifemap-chapters";
@@ -13,7 +12,7 @@ import AiProgressLog from "./AiProgressLog";
 import BookChapterView from "./BookChapterView";
 import { isOperationLockedRemotely, setOperationLock } from "@/lib/ai/cloud-profile-sync";
 
-export default function LifeMapBookPanel({ result }: { result: HoroscopeResult }) {
+export default function LifeMapBookPanel({ result, compactChart }: { result: HoroscopeResult; compactChart: string }) {
     const [data, setData] = useState<Record<ChapterKey, string> | null>(null);
     const [legacyCache, setLegacyCache] = useState(false);
     const [active, setActive] = useState<ChapterKey>("ch1");
@@ -21,7 +20,6 @@ export default function LifeMapBookPanel({ result }: { result: HoroscopeResult }
     const [loading, setLoading] = useState(false);
     const [remoteBusy, setRemoteBusy] = useState(false);
     const [steps, setSteps] = useState<string[]>([]);
-    const compactChart = compressLaSoToText(result.thien_ban, result.cung_12);
     const chartKey = buildChartKey(result.thien_ban);
     const cacheId = `${chartKey}_lifemap_v1`;
 

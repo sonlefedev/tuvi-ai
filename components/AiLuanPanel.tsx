@@ -1,13 +1,12 @@
-// components/AiLuanPanel.tsx
 "use client";
-import React, { useEffect, useMemo, useState } from "react";
-import { Bot, BrainCircuit, GripHorizontal, Loader2, Maximize2, MessageSquareText, Minimize2, Send, Trash2, X } from "lucide-react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Bot, BrainCircuit, Loader2, MessageSquareText, Send, Trash2, X } from "lucide-react";
 import { CungItem, HoroscopeResult } from "@/lib/types";
 import { estimateTokens } from "@/lib/ai/compress-laso";
-import { buildChartKey, buildChatContext, clearChartMemory, loadChartMemory, saveChartMemory, ChartMemoryState } from "@/lib/ai/tuvi-memory-store";
+import { getCurrentUser } from "@/lib/auth-store";
+import { buildChartKey, buildChatContext, clearChartMemory, getChartJournalCount, loadChartMemory, saveChartMemory, ChartMemoryState } from "@/lib/ai/tuvi-memory-store";
 import { streamAiEndpoint } from "@/lib/ai/stream-client";
 import { notifyTabStatus } from "@/lib/tab-notify";
-import { useFloatingBox } from "@/lib/use-floating-box";
 import AiProgressLog from "./AiProgressLog";
 import FormattedAiText from "./FormattedAiText";
 
@@ -18,10 +17,14 @@ export default function AiLuanPanel({ result, compactChart, selectedCung, extern
     const [open, setOpen] = useState(false);
     const [question, setQuestion] = useState("");
     const [loading, setLoading] = useState(false);
+    const [clearing, setClearing] = useState(false);
     const [steps, setSteps] = useState<string[]>([]);
     const [streamingText, setStreamingText] = useState("");
     const [store, setStore] = useState<ChartMemoryState | null>(null);
-    const box = useFloatingBox();
+    const [notice, setNotice] = useState("");
+    const [fontPx, setFontPx] = useState(13);
+    const [contextOptions, setContextOptions] = useState({ history: true, memory: true, cung: true, journal: false });
+    const messagesRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         const key = buildChartKey(result.thien_ban);
@@ -31,66 +34,163 @@ export default function AiLuanPanel({ result, compactChart, selectedCung, extern
         return () => window.removeEventListener("tuvi-memory-updated", sync);
     }, [result, compactChart, loading]);
 
-    const askAi = async (q: string) => {
+    useEffect(() => {
+        if (!open) return;
+        const closeOnEscape = (event: KeyboardEvent) => {
+            if (event.key === "Escape") setOpen(false);
+        };
+        window.addEventListener("keydown", closeOnEscape);
+        return () => window.removeEventListener("keydown", closeOnEscape);
+    }, [open]);
+
+    useEffect(() => {
+        if (open && messagesRef.current) messagesRef.current.scrollTop = messagesRef.current.scrollHeight;
+    }, [open, store?.messages.length, streamingText]);
+
+    const askAi = useCallback(async (q: string) => {
         const cleanQ = q.trim();
         if (!cleanQ || loading || !store) return;
         const latest = loadChartMemory(store.chartKey, store.compactChart);
-        const activeContext = buildChatContext(latest, selectedCung, cleanQ);
-        const recentHistory = latest.messages.slice(-6);
-        setLoading(true); setQuestion(""); setStreamingText("");
-        setSteps([`Nạp lá số, ${recentHistory.length} lượt thoại & ${latest.memoryNotes.length} ký ức...`]);
+        const activeContext = buildChatContext(latest, selectedCung, cleanQ, {
+            includeCungContext: contextOptions.cung,
+            includeJournal: contextOptions.journal,
+        });
+        const recentHistory = contextOptions.history ? latest.messages.slice(-6) : [];
+        const memoryNotes = contextOptions.memory ? latest.memoryNotes : [];
+        setLoading(true);
+        setNotice("");
+        setQuestion("");
+        setStreamingText("");
+        setSteps([`Nạp lá số, ${recentHistory.length} tin nhắn & ${memoryNotes.length} ký ức...`]);
         notifyTabStatus("⏳ Trợ lý AI đang trả lời...");
         const nextMessages = [...latest.messages, { role: "user" as const, text: cleanQ, ts: Date.now() }];
         setStore({ ...latest, messages: nextMessages });
         try {
-            const data = await streamAiEndpoint("/api/ai-luan", { chartContext: analysisChartContext, memoryNotes: latest.memoryNotes, history: recentHistory, activeContext, question: cleanQ }, (s) => setSteps((p) => [...p, s]), setStreamingText);
+            const data = await streamAiEndpoint("/api/ai-luan", { chartContext: analysisChartContext, memoryNotes, history: recentHistory, activeContext, question: cleanQ }, (s) => setSteps((p) => [...p, s]), setStreamingText);
             if (data?.answer) {
                 const updated: ChartMemoryState = { ...latest, messages: [...nextMessages, { role: "ai", text: data.answer, ts: Date.now() }], memoryNotes: data.memoryNote ? [...latest.memoryNotes, data.memoryNote] : latest.memoryNotes };
-                setStore(updated); saveChartMemory(updated); notifyTabStatus("🔔 (1) AI đã trả lời xong!");
+                setStore(updated);
+                if (!saveChartMemory(updated)) setNotice("Câu trả lời đã hiển thị nhưng chưa lưu được trên thiết bị.");
+                notifyTabStatus("🔔 (1) AI đã trả lời xong!");
             }
-        } catch (e: any) { notifyTabStatus("⚠️ Lỗi kết nối AI", 3000); alert(e?.message || "Không thể gọi AI"); }
-        finally { setStreamingText(""); setLoading(false); }
+        } catch (error) {
+            notifyTabStatus("⚠️ Lỗi kết nối AI", 3000);
+            alert(error instanceof Error ? error.message : "Không thể gọi AI");
+        } finally {
+            setStreamingText("");
+            setLoading(false);
+        }
+    }, [analysisChartContext, contextOptions, loading, selectedCung, store]);
+
+    const clearData = async (target: "messages" | "memoryNotes") => {
+        if (!store || loading || clearing) return;
+        const hasData = target === "messages" ? store.messages.length > 0 : store.memoryNotes.length > 0;
+        if (!hasData) return;
+        const label = target === "messages" ? "hội thoại" : "ký ức AI";
+        if (!window.confirm(`Xóa ${label} của lá số này? Thao tác này không thể hoàn tác.`)) return;
+        setClearing(true);
+        setNotice("");
+        setStore({ ...store, [target]: [] });
+        try {
+            const result = await clearChartMemory(store.chartKey, target);
+            setStore(loadChartMemory(store.chartKey, compactChart));
+            setNotice(result === "synced" ? `Đã xóa ${label} và đồng bộ Cloud.` : result === "local-only" ? `Đã xóa ${label} trên thiết bị. Đăng nhập để đồng bộ đa thiết bị.` : `Đã xóa ${label} trên thiết bị; Cloud chưa xác nhận đồng bộ.`);
+        } catch (error) {
+            setStore(loadChartMemory(store.chartKey, compactChart));
+            setNotice(error instanceof Error ? error.message : `Không xóa được ${label}.`);
+        } finally {
+            setClearing(false);
+        }
     };
 
-    useEffect(() => { if (externalPrompt && store && !loading) { onConsumedPrompt?.(); setOpen(true); askAi(externalPrompt); } }, [externalPrompt, store]);
+    const consumedPromptRef = useRef("");
+    useEffect(() => {
+        if (!externalPrompt) {
+            consumedPromptRef.current = "";
+            return;
+        }
+        if (!store || loading || consumedPromptRef.current === externalPrompt) return;
+        consumedPromptRef.current = externalPrompt;
+        const timer = window.setTimeout(() => {
+            onConsumedPrompt?.();
+            setOpen(true);
+            void askAi(externalPrompt);
+        }, 0);
+        return () => window.clearTimeout(timer);
+    }, [askAi, externalPrompt, loading, onConsumedPrompt, store]);
+
     if (!store) return null;
     const activeLabel = selectedCung ? `${selectedCung.ten_cung.replace("<THÂN>", "").trim()} • chi ${selectedCung.chi}` : "";
+    const journalCount = getChartJournalCount(store.chartKey);
+    const cloudAccount = Boolean(getCurrentUser());
+    const latestAiIndex = store.messages.reduce((latest, message, index) => message.role === "ai" ? index : latest, -1);
 
     return (
         <>
-            <button type="button" onClick={() => setOpen(!open)} className="fixed bottom-4 left-4 sm:bottom-6 sm:left-6 z-50 flex items-center gap-2 px-4 py-2.5 rounded-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-bold text-xs shadow-2xl border border-purple-300/30 cursor-pointer">
-                {open ? <X className="w-4 h-4" /> : <MessageSquareText className="w-4 h-4" />}
-                <span>{open ? "Đóng Chat AI" : "Hỏi Trợ Lý AI"}</span>
-                {!open && store.memoryNotes.length > 0 && <span className="px-1.5 py-0.5 rounded-full bg-amber-400 text-slate-950 text-[10px] font-black">{store.memoryNotes.length}</span>}
-            </button>
+            {!open && (
+                <button type="button" onClick={() => setOpen(true)} className="fixed bottom-4 left-4 sm:bottom-6 sm:left-6 z-50 flex items-center gap-2 rounded-full border border-purple-300/30 bg-gradient-to-r from-purple-600 to-pink-600 px-4 py-2.5 text-xs font-bold text-white shadow-2xl hover:from-purple-500 hover:to-pink-500">
+                    <MessageSquareText className="h-4 w-4" />
+                    <span>Hỏi Trợ Lý AI</span>
+                    {store.memoryNotes.length > 0 && <span className="rounded-full bg-amber-400 px-1.5 py-0.5 text-[10px] font-black text-slate-950">{store.memoryNotes.length}</span>}
+                </button>
+            )}
 
             {open && (
-                <div onPointerMove={box.onPointerMove} onPointerUp={box.endAction} style={{ transform: `translate(${box.rect.x}px, ${box.rect.y}px)`, width: `min(94vw, ${box.rect.w}px)`, height: `min(82vh, ${box.rect.h}px)` }} className="fixed bottom-16 left-3 sm:bottom-20 sm:left-6 z-50 bg-slate-900/95 border border-purple-500/45 rounded-2xl shadow-2xl backdrop-blur-md flex flex-col overflow-hidden text-slate-200">
-                    <div onPointerDown={(e) => box.startAction(e, "l")} className="absolute left-0 top-2 bottom-2 w-1.5 cursor-ew-resize z-20" />
-                    <div onPointerDown={(e) => box.startAction(e, "r")} className="absolute right-0 top-2 bottom-2 w-1.5 cursor-ew-resize z-20" />
-                    <div onPointerDown={(e) => box.startAction(e, "b")} className="absolute bottom-0 left-2 right-2 h-1.5 cursor-ns-resize z-20" />
-                    <div onPointerDown={(e) => box.startAction(e, "br")} title="Kéo để thay đổi kích thước" className="absolute right-0 bottom-0 w-3.5 h-3.5 cursor-nwse-resize z-30" />
-                    <div onPointerDown={(e) => box.startAction(e, "drag")} className="px-3.5 py-2.5 bg-slate-950/95 border-b border-slate-800 flex justify-between items-center cursor-move select-none touch-none">
-                        <div className="flex items-center gap-2"><GripHorizontal className="w-4 h-4 text-slate-500 shrink-0" /><Bot className="w-4 h-4 text-purple-400 shrink-0" /><div><div className="font-bold text-xs text-purple-300">Trợ Lý AI Tử Vi & Ký Ức</div><div className="text-[10px] text-slate-400">~{estimateTokens(analysisChartContext).toLocaleString("vi-VN")} tok ước tính • {store.memoryNotes.length} ký ức{activeLabel ? ` • Cung ${activeLabel}` : ""}</div></div></div>
-                        <div className="flex items-center gap-1">
-                            <button type="button" onClick={() => box.stepFont(-1)} className="px-1.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-[10px] font-bold cursor-pointer">A-</button>
-                            <button type="button" onClick={() => box.stepFont(1)} className="px-1.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-[11px] font-bold cursor-pointer">A+</button>
-                            <button type="button" onClick={box.toggleExpand} className="p-1.5 rounded-lg hover:bg-slate-800 text-slate-300 cursor-pointer">{box.expanded ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}</button>
-                            {store.memoryNotes.length > 0 && <button type="button" title="Xóa lịch sử chat & ký ức AI" onClick={async () => { setStore({ ...store, memoryNotes: [], messages: [] }); await clearChartMemory(store.chartKey); }} className="p-1.5 rounded-lg hover:bg-rose-950/60 text-slate-400 hover:text-rose-300 cursor-pointer"><Trash2 className="w-3.5 h-3.5" /></button>}
-                            <button type="button" onClick={() => setOpen(false)} className="p-1.5 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white cursor-pointer"><X className="w-4 h-4" /></button>
+                <div className="fixed inset-0 z-[70] flex justify-end bg-slate-950/60 p-1.5 backdrop-blur-[2px] sm:p-4" onClick={(event) => { if (event.target === event.currentTarget) setOpen(false); }}>
+                    <section role="dialog" aria-modal="true" aria-labelledby="ai-chat-title" className="flex h-full w-full flex-col overflow-hidden rounded-xl border border-purple-500/45 bg-slate-900 text-slate-200 shadow-2xl sm:my-auto sm:h-[min(88vh,780px)] sm:max-w-[560px] sm:rounded-2xl">
+                        <header className="flex items-center justify-between gap-2 border-b border-slate-800 bg-slate-950/95 px-3 py-2.5">
+                            <div className="flex min-w-0 items-center gap-2">
+                                <Bot className="h-4 w-4 shrink-0 text-purple-400" />
+                                <div className="min-w-0">
+                                    <h2 id="ai-chat-title" className="truncate text-xs font-bold text-purple-300">Trợ Lý AI Tử Vi</h2>
+                                    <div className="truncate text-[10px] text-slate-400">~{estimateTokens(analysisChartContext).toLocaleString("vi-VN")} tok ước tính cho lá số{activeLabel ? ` • ${activeLabel}` : ""}</div>
+                                </div>
+                            </div>
+                            <div className="flex shrink-0 items-center gap-1">
+                                <button type="button" aria-label="Giảm cỡ chữ" onClick={() => setFontPx((font) => Math.max(11, font - 1))} className="rounded bg-slate-800 px-1.5 py-1 text-[10px] font-bold hover:bg-slate-700">A-</button>
+                                <button type="button" aria-label="Tăng cỡ chữ" onClick={() => setFontPx((font) => Math.min(18, font + 1))} className="rounded bg-slate-800 px-1.5 py-1 text-[11px] font-bold hover:bg-slate-700">A+</button>
+                                {store.messages.length > 0 && <button type="button" aria-label="Xóa hội thoại" title="Xóa hội thoại" disabled={loading || clearing} onClick={() => clearData("messages")} className="rounded-lg p-1.5 text-slate-400 hover:bg-rose-950/60 hover:text-rose-300 disabled:opacity-40"><Trash2 className="h-3.5 w-3.5" /></button>}
+                                {store.memoryNotes.length > 0 && <button type="button" aria-label="Xóa ký ức AI" title="Xóa ký ức AI" disabled={loading || clearing} onClick={() => clearData("memoryNotes")} className="rounded-lg p-1.5 text-slate-400 hover:bg-rose-950/60 hover:text-rose-300 disabled:opacity-40"><BrainCircuit className="h-3.5 w-3.5" /></button>}
+                                <button type="button" aria-label="Đóng Chat AI" onClick={() => setOpen(false)} className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-800 hover:text-white"><X className="h-4 w-4" /></button>
+                            </div>
+                        </header>
+
+                        <div ref={messagesRef} style={{ fontSize: fontPx }} className="flex-1 space-y-2.5 overflow-y-auto p-3.5 leading-relaxed">
+                            <details className="rounded-xl border border-slate-700 bg-slate-950/70 px-3 py-2 text-[11px]">
+                                <summary className="cursor-pointer font-semibold text-cyan-200">Ngữ cảnh gửi AI · Lá số luôn được gửi</summary>
+                                <div className="mt-2 space-y-2 text-slate-300">
+                                    <p className="text-[10px] text-slate-400">Bạn có thể chọn thêm dữ liệu. Nhật ký cá nhân mặc định không gửi. Các lựa chọn áp dụng cho câu hỏi tiếp theo.</p>
+                                    <label className="flex cursor-pointer items-center gap-2"><input type="checkbox" checked={contextOptions.cung} disabled={loading} onChange={(event) => setContextOptions((options) => ({ ...options, cung: event.target.checked }))} /> Cung đang chọn và phần luận đã lưu</label>
+                                    <label className="flex cursor-pointer items-center gap-2"><input type="checkbox" checked={contextOptions.history} disabled={loading} onChange={(event) => setContextOptions((options) => ({ ...options, history: event.target.checked }))} /> 6 tin nhắn gần nhất ({Math.min(store.messages.length, 6)})</label>
+                                    <label className="flex cursor-pointer items-center gap-2"><input type="checkbox" checked={contextOptions.memory} disabled={loading} onChange={(event) => setContextOptions((options) => ({ ...options, memory: event.target.checked }))} /> Ký ức AI ({Math.min(store.memoryNotes.length, 6)})</label>
+                                    <label className="flex cursor-pointer items-center gap-2"><input type="checkbox" checked={contextOptions.journal} disabled={loading || journalCount === 0} onChange={(event) => setContextOptions((options) => ({ ...options, journal: event.target.checked }))} /> Nhật ký cá nhân ({Math.min(journalCount, 4)})</label>
+                                    <details className="rounded-lg bg-slate-900 px-2 py-1.5">
+                                        <summary className="cursor-pointer text-cyan-200">Xem dữ liệu lá số được gửi</summary>
+                                        <pre className="mt-2 max-h-56 overflow-auto whitespace-pre-wrap break-words text-[9px] text-slate-400">{analysisChartContext}</pre>
+                                    </details>
+                                    <p className="text-[10px] text-slate-500">Chat và ký ức được lưu trong trình duyệt{cloudAccount ? " và đồng bộ Cloud khi khả dụng" : " ở Chế độ Khách"}. Dữ liệu đã chọn được gửi tới máy chủ ứng dụng và dịch vụ AI để tạo câu trả lời.</p>
+                                </div>
+                            </details>
+
+                            {notice && <div role="status" aria-live="polite" className="rounded-lg border border-cyan-500/20 bg-cyan-950/30 px-3 py-2 text-[11px] text-cyan-200">{notice}</div>}
+                            {store.memoryNotes.length > 0 && <div className="space-y-0.5 rounded-xl border border-amber-500/20 bg-amber-500/5 p-2 text-[11px] text-amber-200/90"><div className="flex items-center gap-1 font-bold text-amber-400"><BrainCircuit className="h-3 w-3" /> Ký ức AI đang giữ:</div>{store.memoryNotes.slice(-3).map((memory, index) => <div key={index} className="truncate">• {memory}</div>)}</div>}
+                            <div className="flex flex-wrap gap-1">{QUICK_PROMPTS.map((prompt) => <button key={prompt} type="button" disabled={loading || clearing} onClick={() => askAi(prompt)} className="cursor-pointer rounded-lg border border-purple-500/30 bg-purple-500/15 px-2 py-1 text-[11px] text-purple-200 hover:bg-purple-500/25 disabled:opacity-50">{prompt}</button>)}</div>
+                            <AiProgressLog steps={steps} active={loading} />
+                            {store.messages.map((message, index) => {
+                                const bubbleClass = `rounded-xl border p-3 whitespace-pre-line ${message.role === "user" ? "ml-6 border-slate-700 bg-slate-800 text-amber-200" : "mr-2 border-purple-500/25 bg-slate-950 text-slate-200"}`;
+                                if (message.role === "ai" && index !== latestAiIndex) {
+                                    return <details key={`${message.ts}-${index}`} className={bubbleClass}><summary className="cursor-pointer text-[11px] font-semibold text-purple-300">Câu trả lời AI trước · bấm để mở</summary><div className="mt-2"><FormattedAiText text={message.text} /></div></details>;
+                                }
+                                return <div key={`${message.ts}-${index}`} className={bubbleClass}><b className="mb-1 block text-[10px] uppercase opacity-60">{message.role === "user" ? "Bạn" : "Đại sư AI"}</b><FormattedAiText text={message.text} /></div>;
+                            })}
+                            {streamingText && <div className="mr-2 whitespace-pre-line rounded-xl border border-purple-400/50 bg-slate-950 p-3 text-slate-200"><b className="mb-1 block text-[10px] uppercase text-purple-400">Đang trả lời...</b><FormattedAiText text={streamingText} /></div>}
                         </div>
-                    </div>
-                    <div style={{ fontSize: box.fontPx }} className="p-3.5 space-y-2.5 flex-1 overflow-y-auto leading-relaxed">
-                        {store.memoryNotes.length > 0 && <div className="p-2 rounded-xl bg-amber-500/5 border border-amber-500/20 text-[11px] text-amber-200/90 space-y-0.5"><div className="font-bold text-amber-400 flex items-center gap-1"><BrainCircuit className="w-3 h-3" /> Ký ức AI đang giữ:</div>{store.memoryNotes.slice(-3).map((m, i) => <div key={i} className="truncate">• {m}</div>)}</div>}
-                        <div className="flex flex-wrap gap-1">{QUICK_PROMPTS.map((p, i) => <button key={i} type="button" disabled={loading} onClick={() => askAi(p)} className="px-2 py-1 rounded-lg bg-purple-500/15 hover:bg-purple-500/25 border border-purple-500/30 text-purple-200 text-[11px] disabled:opacity-50 cursor-pointer">{p}</button>)}</div>
-                        <AiProgressLog steps={steps} active={loading} />
-                        {store.messages.map((m, i) => <div key={i} className={`p-3 rounded-xl whitespace-pre-line ${m.role === "user" ? "bg-slate-800 text-amber-200 ml-6 border border-slate-700" : "bg-slate-950 text-slate-200 mr-2 border border-purple-500/25"}`}><b className="block text-[10px] uppercase mb-1 opacity-60">{m.role === "user" ? "Bạn" : "Đại sư AI"}</b><FormattedAiText text={m.text} /></div>)}
-                        {streamingText && <div className="p-3 rounded-xl whitespace-pre-line bg-slate-950 text-slate-200 mr-2 border border-purple-400/50"><b className="block text-[10px] uppercase mb-1 text-purple-400">Đang trả lời...</b><FormattedAiText text={streamingText} /></div>}
-                    </div>
-                    <form onSubmit={(e) => { e.preventDefault(); askAi(question); }} className="p-2.5 bg-slate-950/90 border-t border-slate-800 flex gap-1.5 text-xs">
-                        <input value={question} onChange={(e) => setQuestion(e.target.value)} placeholder={activeLabel ? `Hỏi về cung ${activeLabel} hoặc lá số...` : "Hỏi bất kỳ điều gì về lá số..."} className="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-slate-100 placeholder:text-slate-500" />
-                        <button type="submit" disabled={loading || !question.trim()} className="px-3.5 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold flex items-center gap-1 disabled:opacity-50 cursor-pointer">{loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}</button>
-                    </form>
+
+                        <form onSubmit={(event) => { event.preventDefault(); askAi(question); }} className="flex gap-1.5 border-t border-slate-800 bg-slate-950/90 p-2.5 text-xs">
+                            <input value={question} onChange={(event) => setQuestion(event.target.value)} placeholder={activeLabel ? `Hỏi về cung ${activeLabel} hoặc lá số...` : "Hỏi bất kỳ điều gì về lá số..."} className="min-w-0 flex-1 rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-slate-100 placeholder:text-slate-500" />
+                            <button type="submit" disabled={loading || clearing || !question.trim()} className="flex cursor-pointer items-center gap-1 rounded-xl bg-purple-600 px-3.5 py-2 font-bold text-white hover:bg-purple-500 disabled:opacity-50">{loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}<span className="sr-only">Gửi câu hỏi</span></button>
+                        </form>
+                    </section>
                 </div>
             )}
         </>

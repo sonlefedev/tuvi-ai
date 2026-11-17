@@ -17,11 +17,14 @@ export default function AuthBarAndModal({ onLoadSavedChart }: { onLoadSavedChart
     const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
     const [err, setErr] = useState("");
-    const [syncState, setSyncState] = useState<{ status: string; detail: string }>({ status: "synced", detail: "" });
+    const [syncState, setSyncState] = useState<{ status: string; detail: string }>({ status: "idle", detail: "" });
 
     useEffect(() => {
         const sync = () => { const cur = getCurrentUser(); setUser(cur); if (!isAdminUser(cur)) setPanel(null); setLocalList(listLocalUsers()); };
-        const onSyncEvt = (e: any) => setSyncState(e.detail || { status: "synced", detail: "" });
+        const onSyncEvt = (event: Event) => {
+            const detail = (event as CustomEvent<{ status: string; detail: string }>).detail;
+            setSyncState(detail || { status: "idle", detail: "" });
+        };
         sync();
         window.addEventListener("tuvi-auth-changed", sync);
         window.addEventListener("tuvi-sync-status", onSyncEvt);
@@ -57,7 +60,7 @@ export default function AuthBarAndModal({ onLoadSavedChart }: { onLoadSavedChart
                         <div className="flex flex-wrap items-center gap-2">
                             <span className="w-7 h-7 rounded-full bg-emerald-500/20 border border-emerald-400/50 text-emerald-300 font-black flex items-center justify-center uppercase">{user.displayName[0]}</span>
                             <span className="text-slate-200 font-bold">{user.displayName} <span className="text-slate-400 font-mono font-normal">(@{user.username})</span></span>
-                            <span title={syncState.detail} className={`text-[10.5px] px-2 py-0.5 rounded border inline-flex items-center gap-1 ${syncState.status === "error" ? "bg-rose-500/15 text-rose-300 border-rose-500/40" : "bg-emerald-500/15 text-emerald-300 border-emerald-500/30"}`}>{syncState.status === "syncing" ? <Loader2 className="w-3 h-3 animate-spin" /> : syncState.status === "error" ? <CloudOff className="w-3 h-3" /> : <Cloud className="w-3 h-3" />}{syncState.status === "syncing" ? "Đang lưu..." : syncState.status === "error" ? "Lỗi Cloud" : "Cloud Realtime"}</span>
+                            <span title={syncState.detail} className={`text-[10.5px] px-2 py-0.5 rounded border inline-flex items-center gap-1 ${syncState.status === "error" ? "bg-rose-500/15 text-rose-300 border-rose-500/40" : syncState.status === "syncing" ? "bg-amber-500/15 text-amber-200 border-amber-500/40" : "bg-emerald-500/15 text-emerald-300 border-emerald-500/30"}`}>{syncState.status === "syncing" ? <Loader2 className="w-3 h-3 animate-spin" /> : syncState.status === "error" ? <CloudOff className="w-3 h-3" /> : <Cloud className="w-3 h-3" />}{syncState.status === "syncing" ? "Đang lưu..." : syncState.status === "error" ? "Lỗi Cloud" : syncState.status === "synced" ? "Đã đồng bộ Cloud" : "Chưa xác nhận Cloud"}</span>
                             {user.savedCharts.length > 0 && <div className="flex flex-wrap items-center gap-1 ml-1"><span className="text-[11px] text-slate-400 flex items-center gap-1"><BookmarkCheck className="w-3.5 h-3.5 text-amber-400" /> Đã lưu:</span>{user.savedCharts.slice(0, 3).map((c) => <button key={c.id} type="button" onClick={() => onLoadSavedChart(c)} className="px-2 py-0.5 rounded-lg bg-slate-800 hover:bg-amber-500/20 text-amber-200 border border-slate-700 text-[11px] cursor-pointer">{c.hoTen} ({c.nam})</button>)}</div>}
                         </div>
                         <div className="flex flex-wrap items-center gap-1.5">

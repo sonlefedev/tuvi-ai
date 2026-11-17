@@ -9,6 +9,7 @@ interface Props {
     cungList: CungItem[];
     selectedChi: string;
     onSelectCung: (c: CungItem) => void;
+    onNavigateToSection?: (id: string) => void;
 }
 
 const SECTIONS = [
@@ -25,10 +26,14 @@ const SECTIONS = [
     { id: "sec-feedback", label: "Góp ý & Báo lỗi" },
 ];
 
-export default function SideQuickNav({ hasResult, cungList, selectedChi, onSelectCung }: Props) {
+export default function SideQuickNav({ hasResult, cungList, selectedChi, onSelectCung, onNavigateToSection }: Props) {
     const [mobileOpen, setMobileOpen] = useState(false);
     const [mobileTab, setMobileTab] = useState<"sec" | "cung">("cung");
-    const jumpTo = (id: string) => { setMobileOpen(false); document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" }); };
+    const jumpTo = (id: string) => {
+        setMobileOpen(false);
+        onNavigateToSection?.(id);
+        window.setTimeout(() => document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" }), 80);
+    };
     const handlePickCung = (c: CungItem) => { onSelectCung(c); jumpTo("sec-cung"); };
     const visibleSections = SECTIONS.filter((s) => !s.needResult || hasResult);
 

@@ -8,7 +8,7 @@ export const FEATURES = [
     { title: "Hợp Lá Số Đôi (Soi Duyên & Cộng Sự)", desc: "Đối chiếu chéo 2 lá số từ tài khoản hoặc nhập mới: Ngũ hành bản mệnh, Phu Thê / Nô Bộc và 4 đường Phi Tứ Hóa tương tác." },
     { title: "Định Giờ Sinh Ngược (Rectification)", desc: "Chọn 2–3 khung giờ nghi ngờ và nhập biến cố quá khứ để AI chấm điểm xác suất giờ sinh khớp nhất và áp dụng chỉ với 1 chạm." },
     { title: "Nhật Ký Chiêm Nghiệm & Từ Điển Sao", desc: "Chạm trực tiếp vào tên sao trên bàn cờ để tra cứu Ngũ hành – ý nghĩa; ghi lại sự kiện thực tế đồng bộ Cloud cho AI tham chiếu." },
-    { title: "Trợ Lý Chat AI & Đồng Bộ Cloud Realtime", desc: "Cửa sổ chat kéo thả, co giãn tự do; Smart Router tự chọn tầng model Gemini tối ưu và đồng bộ Supabase mỗi 2 giây giữa mọi thiết bị." },
+    { title: "Trợ Lý Chat AI & Đồng Bộ Cloud", desc: "Khung chat thích ứng theo màn hình, cho phép chọn ngữ cảnh được gửi; Smart Router chọn model Gemini và đồng bộ hồ sơ lên Cloud khi đăng nhập." },
 ];
 
 export const STEPS = [
@@ -16,12 +16,12 @@ export const STEPS = [
     "Chạm vào bất kỳ ngôi sao nào trên bàn cờ 4×4 để mở Từ điển tra cứu nhanh; bấm Tải ảnh lá số (4K) ở góc trên để lưu ảnh nét căng.",
     "Xem Timeline 12 tháng (xuất lịch .ICS), lập Đại Cẩm Nang 8 chương (~100k chữ) hoặc bấm AI Luận Chuyên Sâu 5 phần cho từng cung.",
     "Trải nghiệm Biểu đồ đa tầng, Hợp lá số đôi, Định giờ sinh ngược hoặc ghi lại Nhật ký chiêm nghiệm thực tế bên dưới.",
-    "Mở nút Hỏi Trợ Lý AI ở góc dưới bên trái để hỏi đáp trực tiếp theo cung đang chọn, kéo thả khung chat tùy ý.",
+    "Mở nút Hỏi Trợ Lý AI ở góc dưới bên trái để hỏi theo cung đang chọn; xem và tùy chỉnh ngữ cảnh gửi trong khung chat.",
 ];
 
 export const LIVE_TIPS = [
     "Mẹo hay: Chạm trực tiếp vào tên bất kỳ ngôi sao nào trên bàn cờ để xem Ngũ hành & lời khuyên ứng dụng!",
-    "Đồng bộ tức thì: Mở cùng tài khoản trên điện thoại và máy tính để theo dõi kết quả luận giải theo thời gian thực.",
+    "Đồng bộ Cloud: Đăng nhập để lưu hồ sơ và dùng trên nhiều thiết bị; trạng thái đồng bộ hiển thị trên thanh tài khoản.",
     "Không chắc giờ sinh? Dùng ngay công cụ Định Giờ Sinh Ngược bên dưới để AI đối chiếu biến cố quá khứ!",
     "Xuất lịch nhắc việc: Tải file .ICS ở mục Timeline 12 Tháng để lưu các mốc vận hạn năm vào lịch điện thoại.",
 ];
@@ -37,4 +37,4 @@ export const DAILY_CARDS = [
     { star: "Thiên Lương Ấm Tinh", color: "Xanh Lá Mạ", hour: "Giờ Dần (03h–05h)", num: "03 • 07", msg: "Bình an nội tâm, cho đi sự giúp đỡ chân thành hôm nay sẽ nhận lại duyên lành bất ngờ." },
 ];
 
-export const TECH_STACK = ["Next.js 16", "React 19", "TypeScript 5", "Tailwind v4", "Gemini Smart Router", "Supabase Realtime", "4K Export"];
+export const TECH_STACK = ["Next.js 16", "React 19", "TypeScript 5", "Tailwind v4", "Gemini Smart Router", "Supabase Cloud Sync", "4K Export"];

@@ -20,11 +20,11 @@ export async function GET(req: NextRequest) {
             ? `profile_key=eq.${encodeURIComponent(key)}${userId ? `&user_id=eq.${encodeURIComponent(userId)}` : ""}&select=profile_key,data,updated_at`
             : `user_id=eq.${encodeURIComponent(userId)}&order=updated_at.desc&limit=8&select=profile_key,data,updated_at`;
         const res = await fetch(`${SB_URL}/rest/v1/tuvi_profiles?${query}`, { headers: sbHeaders(), cache: "no-store" });
-        if (!res.ok) return NextResponse.json({ rows: [], error: await res.text() });
+        if (!res.ok) return NextResponse.json({ rows: [], error: await res.text() }, { status: 502 });
         const rows = await res.json();
         return NextResponse.json({ rows: Array.isArray(rows) ? rows : [] });
     } catch (e: any) {
-        return NextResponse.json({ rows: [], error: e?.message || "GET error" });
+        return NextResponse.json({ rows: [], error: e?.message || "GET error" }, { status: 502 });
     }
 }
 

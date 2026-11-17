@@ -23,6 +23,15 @@ import { setBaseTabTitle } from "@/lib/tab-notify";
 import { buildChartKey } from "@/lib/ai/tuvi-memory-store";
 import { pullProfileFromCloud, pushProfileToCloud } from "@/lib/ai/cloud-profile-sync";
 import { createDataFlowId, emitDataFlowTrace, summarizeDataFlowPayload } from "@/lib/data-flow-trace";
+
+type ResultSection = "chart" | "forecast" | "ai" | "tools";
+const RESULT_SECTIONS: { id: ResultSection; label: string }[] = [
+  { id: "chart", label: "Lá số & Cung" },
+  { id: "forecast", label: "Vận hạn & Biểu đồ" },
+  { id: "ai", label: "AI & Cẩm nang" },
+  { id: "tools", label: "Công cụ & Nhật ký" },
+];
+
 export default function Home() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<HoroscopeResult | null>(null);
@@ -32,6 +41,7 @@ export default function Home() {
   const [toastCung, setToastCung] = useState("");
   const [inspectedStar, setInspectedStar] = useState<{ name: string; cung: string } | null>(null);
   const [aiQueuedPrompt, setAiQueuedPrompt] = useState("");
+  const [activeResultSection, setActiveResultSection] = useState<ResultSection>("chart");
   const bootedUidRef = useRef<string | null>(null);
   const compactChart = useMemo(() => result ? compressLaSoToText(result.thien_ban, result.cung_12) : "", [result]);
   const handleGenerate = async (formData: any, isRemoteLoad = false) => {
@@ -47,7 +57,7 @@ export default function Home() {
         emitDataFlowTrace({ flowId, stage: "calculation", status: "success", title: "Máy chủ đã an sao", detail: `Nhận kết quả lá số gồm ${data.data?.cung_12?.length || 0} cung và thiên bàn.`, payload: summarizeDataFlowPayload(data.data) });
         const ck = buildChartKey(data.data.thien_ban);
         await pullProfileFromCloud(ck);
-        setResult(data.data); setSelectedCung(data.data.cung_12[0]); setBaseTabTitle(data.data.thien_ban?.ho_ten, formData.namXem);
+        setResult(data.data); setSelectedCung(data.data.cung_12[0]); setActiveResultSection("chart"); setBaseTabTitle(data.data.thien_ban?.ho_ten, formData.namXem);
         if (!isRemoteLoad) { await pushProfileToCloud(ck, formData); await saveChartToAccount(formData); }
       } else {
         emitDataFlowTrace({ flowId, stage: "api", status: "error", title: "Lập lá số thất bại", detail: data.error || "Máy chủ không trả được kết quả." });
@@ -76,10 +86,18 @@ export default function Home() {
     if (!result) return;
     const ck = buildChartKey(result.thien_ban);
     const poll = () => { if (!document.hidden && getCurrentUser()) pullProfileFromCloud(ck, false); };
-    const id = setInterval(poll, 2000);
+    const id = setInterval(poll, 15000);
     window.addEventListener("focus", poll); document.addEventListener("visibilitychange", poll);
     return () => { clearInterval(id); window.removeEventListener("focus", poll); document.removeEventListener("visibilitychange", poll); };
   }, [result]);
+  const navigateToSection = (id: string) => {
+    const section: ResultSection | null =
+      id === "sec-board" || id === "sec-cung" ? "chart" :
+      id === "sec-timeline" || id === "sec-chart" ? "forecast" :
+      id === "sec-lifemap" ? "ai" :
+      id === "sec-journal" || id === "sec-synastry" || id === "sec-rectify" ? "tools" : null;
+    if (section) setActiveResultSection(section);
+  };
   const handleSelectCung = (c: CungItem) => {
     setSelectedCung(c);
     if (typeof window !== "undefined" && window.innerWidth < 768) {
@@ -90,24 +108,49 @@ export default function Home() {
   return (
     <main className="relative min-h-screen bg-slate-950 text-slate-100 p-4 md:p-8 flex flex-col items-center">
       <AnalyticsTracker /><StarfieldBg /><DataFlowPanel />
-      {toastCung && <button type="button" onClick={() => { setToastCung(""); document.getElementById("sec-cung")?.scrollIntoView({ behavior: "smooth" }); }} className="md:hidden fixed top-3 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-full bg-amber-500 text-slate-950 font-black text-xs shadow-2xl">Đã chọn cung {toastCung} • Xem luận giải ↓</button>}
+      {toastCung && <button type="button" onClick={() => { setToastCung(""); navigateToSection("sec-cung"); window.setTimeout(() => document.getElementById("sec-cung")?.scrollIntoView({ behavior: "smooth" }), 80); }} className="md:hidden fixed top-3 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-full bg-amber-500 text-slate-950 font-black text-xs shadow-2xl">Đã chọn cung {toastCung} • Xem luận giải ↓</button>}
       <AuthBarAndModal onLoadSavedChart={(c: SavedChartEntry) => handleGenerate(c)} />
-      <SideQuickNav hasResult={Boolean(result)} cungList={result?.cung_12 || []} selectedChi={selectedCung?.chi || ""} onSelectCung={handleSelectCung} />
-      <div id="sec-intro" className="relative z-10 w-full"><AppIntroCard hasResult={Boolean(result)} /><DailyFortuneWidget onAskAi={result ? setAiQueuedPrompt : undefined} /></div>
+      <SideQuickNav hasResult={Boolean(result)} cungList={result?.cung_12 || []} selectedChi={selectedCung?.chi || ""} onSelectCung={handleSelectCung} onNavigateToSection={navigateToSection} />
+      <div id="sec-intro" className="relative z-10 w-full"><AppIntroCard key={result ? "with-result" : "no-result"} /><DailyFortuneWidget onAskAi={result ? setAiQueuedPrompt : undefined} /></div>
       <div id="sec-form" className="relative z-10 w-full"><InputForm onGenerate={(f) => handleGenerate(f, false)} loading={loading} externalForm={lastForm} /></div>
       {result && (
         <div className="relative z-10 w-full max-w-5xl space-y-6 mt-4">
-          <div id="sec-board"><LaSoBanCo cungList={result.cung_12} thienBan={result.thien_ban} selectedChi={selectedCung?.chi || ""} onSelectCung={handleSelectCung} onInspectStar={(name: string, cung: string) => setInspectedStar({ name, cung })} /></div>
-          <MonthlyTimelinePanel cungList={result.cung_12} thienBan={result.thien_ban} namXem={namXem} onSelectCung={handleSelectCung} onAskAi={setAiQueuedPrompt} />
-          <div id="sec-lifemap"><LifeMapBookPanel result={result} compactChart={compactChart} /></div>
-          {selectedCung && <div id="sec-cung"><CungDetail cung={selectedCung} cungList={result.cung_12} thienBan={result.thien_ban} compactChart={compactChart} tongQuan={result.tong_quan} namXem={namXem} /></div>}
-          <div id="sec-chart"><TuviChartsPanel result={result} compactChart={compactChart} /></div>
-          <DestinyJournalPanel thienBan={result.thien_ban} />
-          <SynastryPanel resultA={result} compactChart={compactChart} />
-          {lastForm && <BirthHourRectifyPanel baseForm={lastForm} thienBan={result.thien_ban} onApplyHour={(h) => handleGenerate({ ...lastForm, gio: h }, false)} />}
-          <div id="sec-chat"><AiLuanPanel result={result} compactChart={compactChart} selectedCung={selectedCung} externalPrompt={aiQueuedPrompt} onConsumedPrompt={() => setAiQueuedPrompt("")} /></div>
+          <nav role="tablist" aria-label="Khu vực lá số" onKeyDown={(event) => {
+            if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+            event.preventDefault();
+            const currentIndex = RESULT_SECTIONS.findIndex((section) => section.id === activeResultSection);
+            const offset = event.key === "ArrowRight" ? 1 : -1;
+            const next = RESULT_SECTIONS[(currentIndex + offset + RESULT_SECTIONS.length) % RESULT_SECTIONS.length];
+            setActiveResultSection(next.id);
+            document.getElementById(`result-tab-${next.id}`)?.focus();
+          }} className="sticky top-2 z-20 flex gap-1 overflow-x-auto rounded-2xl border border-slate-700/80 bg-slate-950/95 p-1.5 shadow-xl backdrop-blur">
+            {RESULT_SECTIONS.map(({ id: section, label }) => (
+              <button key={section} id={`result-tab-${section}`} type="button" role="tab" tabIndex={activeResultSection === section ? 0 : -1} aria-selected={activeResultSection === section} aria-controls={`result-panel-${section}`} onClick={() => setActiveResultSection(section)} className={`shrink-0 rounded-xl px-3 py-2 text-[11px] font-bold transition sm:px-4 sm:text-xs ${activeResultSection === section ? "bg-purple-500/20 text-purple-200 ring-1 ring-purple-400/40" : "text-slate-400 hover:bg-slate-800 hover:text-slate-100"}`}>
+                {label}
+              </button>
+            ))}
+          </nav>
+          {RESULT_SECTIONS.map(({ id }) => (
+            <section key={id} id={`result-panel-${id}`} role="tabpanel" aria-labelledby={`result-tab-${id}`} tabIndex={0} hidden={activeResultSection !== id} className="min-w-0 space-y-6">
+              {activeResultSection === id && id === "chart" && <>
+                <div id="sec-board"><LaSoBanCo cungList={result.cung_12} thienBan={result.thien_ban} selectedChi={selectedCung?.chi || ""} onSelectCung={handleSelectCung} onInspectStar={(name: string, cung: string) => setInspectedStar({ name, cung })} /></div>
+                {selectedCung && <div id="sec-cung"><CungDetail cung={selectedCung} cungList={result.cung_12} thienBan={result.thien_ban} compactChart={compactChart} tongQuan={result.tong_quan} namXem={namXem} /></div>}
+              </>}
+              {activeResultSection === id && id === "forecast" && <>
+                <div id="sec-timeline"><MonthlyTimelinePanel cungList={result.cung_12} thienBan={result.thien_ban} namXem={namXem} onSelectCung={handleSelectCung} onAskAi={setAiQueuedPrompt} /></div>
+                <div id="sec-chart"><TuviChartsPanel result={result} compactChart={compactChart} /></div>
+              </>}
+              {activeResultSection === id && id === "ai" && <div id="sec-lifemap"><LifeMapBookPanel result={result} compactChart={compactChart} /></div>}
+              {activeResultSection === id && id === "tools" && <>
+                <div id="sec-journal"><DestinyJournalPanel thienBan={result.thien_ban} /></div>
+                <div id="sec-synastry"><SynastryPanel resultA={result} compactChart={compactChart} /></div>
+                {lastForm && <div id="sec-rectify"><BirthHourRectifyPanel baseForm={lastForm} thienBan={result.thien_ban} onApplyHour={(h) => handleGenerate({ ...lastForm, gio: h }, false)} /></div>}
+              </>}
+            </section>
+          ))}
         </div>
       )}
+      {result && <div id="sec-chat"><AiLuanPanel result={result} compactChart={compactChart} selectedCung={selectedCung} externalPrompt={aiQueuedPrompt} onConsumedPrompt={() => setAiQueuedPrompt("")} /></div>}
       <div className="relative z-10 w-full"><DailySeoArticleBanner /><SeoKnowledgeSection /><FeedbackAndCommentsPanel /></div>
       <StarLookupModal starName={inspectedStar?.name || null} cungContext={inspectedStar?.cung} onClose={() => setInspectedStar(null)} onAskAi={setAiQueuedPrompt} />
     </main>

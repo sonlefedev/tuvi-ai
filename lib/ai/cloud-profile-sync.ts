@@ -3,7 +3,9 @@ import { getCurrentUser } from "../auth-store";
 import { createDataFlowId, emitDataFlowTrace, summarizeDataFlowPayload } from "../data-flow-trace";
 const LOCK_TTL_MS = 95000;
 let isPushing = false;
+let activePushCount = 0;
 let lastLocalWriteAt = 0;
+const pushQueues = new Map<string, Promise<boolean>>();
 function getDeviceId(): string {
     if (typeof window === "undefined") return "srv";
     let id = sessionStorage.getItem("tuvi_dev_id");
@@ -13,7 +15,17 @@ function getDeviceId(): string {
 function emitSyncStatus(status: "syncing" | "synced" | "error", detail = "") {
     if (typeof window !== "undefined") window.dispatchEvent(new CustomEvent("tuvi-sync-status", { detail: { status, detail, ts: Date.now() } }));
 }
-export async function pushProfileToCloud(chartKey: string, formData?: any): Promise<boolean> {
+export function pushProfileToCloud(chartKey: string, formData?: any): Promise<boolean> {
+    if (typeof window === "undefined" || !chartKey) return Promise.resolve(false);
+    const previous = pushQueues.get(chartKey) || Promise.resolve(true);
+    const current = previous.catch(() => false).then(() => pushProfileToCloudNow(chartKey, formData));
+    pushQueues.set(chartKey, current);
+    return current.finally(() => {
+        if (pushQueues.get(chartKey) === current) pushQueues.delete(chartKey);
+    });
+}
+
+async function pushProfileToCloudNow(chartKey: string, formData?: any): Promise<boolean> {
     if (typeof window === "undefined") return false;
     const user = getCurrentUser();
     const flowId = createDataFlowId();
@@ -22,6 +34,7 @@ export async function pushProfileToCloud(chartKey: string, formData?: any): Prom
         return false;
     }
     lastLocalWriteAt = Date.now();
+    activePushCount += 1;
     isPushing = true;
     emitSyncStatus("syncing");
     try {
@@ -56,7 +69,11 @@ export async function pushProfileToCloud(chartKey: string, formData?: any): Prom
         emitDataFlowTrace({ flowId, stage: "cloud", status: "error", title: "Đồng bộ Cloud gặp lỗi", detail: e?.message || "Lỗi mạng." });
         return false;
     }
-    finally { isPushing = false; lastLocalWriteAt = Date.now(); }
+    finally {
+        activePushCount = Math.max(0, activePushCount - 1);
+        isPushing = activePushCount > 0;
+        lastLocalWriteAt = Date.now();
+    }
 }
 export async function setOperationLock(chartKey: string, lockId: string, busy: boolean): Promise<void> {
     if (typeof window === "undefined" || !chartKey) return;
@@ -99,11 +116,13 @@ export async function pullProfileFromCloud(chartKey?: string, shouldTrace = true
         if (!res.ok) throw new Error(response.error || "Không tải được profile Cloud.");
         const { rows } = response;
         if (!Array.isArray(rows) || rows.length === 0) {
+            emitSyncStatus("synced");
             trace("cloud", "info", "Không có profile Cloud", "Chưa tìm thấy profile phù hợp.");
             return null;
         }
         const exact = chartKey ? rows.find((r: any) => r.profile_key === chartKey) : null;
         if (chartKey && !exact) {
+            emitSyncStatus("synced");
             trace("cloud", "info", "Không khớp chart trên Cloud", "Không ghi đè bộ nhớ của lá số hiện tại.");
             return null;
         }
@@ -111,23 +130,56 @@ export async function pullProfileFromCloud(chartKey?: string, shouldTrace = true
         const targetKey = chartKey || primary.profile_key;
         const d = primary.data || {};
         if (targetKey) {
+            let localDataChanged = false;
+            const writeLocal = (key: string, value: string) => {
+                if (localStorage.getItem(key) !== value) {
+                    localStorage.setItem(key, value);
+                    localDataChanged = true;
+                }
+            };
             const localMem = JSON.parse(localStorage.getItem(targetKey) || "{}");
-            const mergedMsgs = (d.mem?.messages?.length || 0) >= (localMem.messages?.length || 0) ? (d.mem?.messages || []) : localMem.messages;
-            const mergedMem = { ...localMem, ...(d.mem || {}), messages: mergedMsgs, cungReadings: { ...(localMem.cungReadings || {}), ...(d.mem?.cungReadings || {}) }, memoryNotes: [...new Set([...(localMem.memoryNotes || []), ...(d.mem?.memoryNotes || [])])].slice(-12) };
-            localStorage.setItem(targetKey, JSON.stringify(mergedMem));
-            if (d.lifeMap) localStorage.setItem(`${targetKey}_lifemap_v1`, JSON.stringify(d.lifeMap));
-            if (Array.isArray(d.journal)) localStorage.setItem(`${targetKey}_journal_v1`, JSON.stringify(d.journal));
-            if (d.synastry) localStorage.setItem(`${targetKey}_synastry_v1`, d.synastry);
-            if (d.rectify) localStorage.setItem(`${targetKey}_rectify_v1`, d.rectify);
-            if (d.charts) localStorage.setItem(`${targetKey}_charts_v1`, JSON.stringify({ ...JSON.parse(localStorage.getItem(`${targetKey}_charts_v1`) || "{}"), ...d.charts }));
-            localStorage.setItem(`${targetKey}_locks_v1`, JSON.stringify(d.busyLocks || {}));
-            window.dispatchEvent(new Event("tuvi-memory-updated"));
+            const cloudMem = d.mem || {};
+            const localMessagesAt = Number(localMem.messagesUpdatedAt) || 0;
+            const cloudMessagesAt = Number(cloudMem.messagesUpdatedAt) || 0;
+            const localNotesAt = Number(localMem.memoryNotesUpdatedAt) || 0;
+            const cloudNotesAt = Number(cloudMem.memoryNotesUpdatedAt) || 0;
+            const localIsNewerThanCloud = localMessagesAt > cloudMessagesAt || localNotesAt > cloudNotesAt;
+            const messages = localMessagesAt || cloudMessagesAt
+                ? (cloudMessagesAt > localMessagesAt ? cloudMem.messages || [] : localMem.messages || [])
+                : (cloudMem.messages?.length || 0) >= (localMem.messages?.length || 0) ? cloudMem.messages || [] : localMem.messages || [];
+            const memoryNotes = localNotesAt || cloudNotesAt
+                ? (cloudNotesAt > localNotesAt ? cloudMem.memoryNotes || [] : localMem.memoryNotes || [])
+                : [...new Set([...(localMem.memoryNotes || []), ...(cloudMem.memoryNotes || [])])].slice(-12);
+            const mergedMem = {
+                ...localMem,
+                ...cloudMem,
+                messages,
+                messagesUpdatedAt: Math.max(localMessagesAt, cloudMessagesAt) || undefined,
+                memoryNotes,
+                memoryNotesUpdatedAt: Math.max(localNotesAt, cloudNotesAt) || undefined,
+                cungReadings: { ...(localMem.cungReadings || {}), ...(cloudMem.cungReadings || {}) },
+            };
+            const serializedMem = JSON.stringify(mergedMem);
+            if (JSON.stringify(localMem) !== serializedMem) {
+                writeLocal(targetKey, serializedMem);
+            }
+            if (localIsNewerThanCloud) void pushProfileToCloud(targetKey);
+            if (d.lifeMap) writeLocal(`${targetKey}_lifemap_v1`, JSON.stringify(d.lifeMap));
+            if (Array.isArray(d.journal)) writeLocal(`${targetKey}_journal_v1`, JSON.stringify(d.journal));
+            if (d.synastry) writeLocal(`${targetKey}_synastry_v1`, d.synastry);
+            if (d.rectify) writeLocal(`${targetKey}_rectify_v1`, d.rectify);
+            if (d.charts) writeLocal(`${targetKey}_charts_v1`, JSON.stringify({ ...JSON.parse(localStorage.getItem(`${targetKey}_charts_v1`) || "{}"), ...d.charts }));
+            writeLocal(`${targetKey}_locks_v1`, JSON.stringify(d.busyLocks || {}));
+            if (localDataChanged) window.dispatchEvent(new Event("tuvi-memory-updated"));
             trace("memory", "success", "Đã nhập profile vào bộ nhớ", "Gộp dữ liệu Cloud vào localStorage của chart hiện tại.", summarizeDataFlowPayload(d));
         }
         trace("cloud", "success", "Tải profile hoàn tất", "Dữ liệu Cloud đã được đối chiếu với chart hiện tại.");
+        emitSyncStatus("synced");
         return d.lastForm || null;
     } catch (error) {
-        trace("cloud", "error", "Tải profile gặp lỗi", error instanceof Error ? error.message : "Lỗi không xác định.");
+        const detail = error instanceof Error ? error.message : "Lỗi không xác định.";
+        emitSyncStatus("error", detail);
+        trace("cloud", "error", "Tải profile gặp lỗi", detail);
         return null;
     }
 }

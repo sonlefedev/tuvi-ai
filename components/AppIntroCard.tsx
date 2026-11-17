@@ -4,12 +4,11 @@ import React, { useEffect, useState } from "react";
 import { BookOpen, ChevronDown, ChevronUp, Code2, Cpu, Info, PlayCircle, Sparkles, UserCheck } from "lucide-react";
 import { FEATURES, LIVE_TIPS, STEPS, TECH_STACK } from "@/lib/intro-data";
 
-export default function AppIntroCard({ hasResult }: { hasResult: boolean }) {
-    const [open, setOpen] = useState(true);
+export default function AppIntroCard() {
+    const [open, setOpen] = useState(false);
     const [showVideo, setShowVideo] = useState(false);
     const [tipIdx, setTipIdx] = useState(0);
 
-    useEffect(() => { if (hasResult) setOpen(false); }, [hasResult]);
     useEffect(() => {
         const id = setInterval(() => setTipIdx((i) => (i + 1) % LIVE_TIPS.length), 4500);
         return () => clearInterval(id);
@@ -88,7 +87,7 @@ export default function AppIntroCard({ hasResult }: { hasResult: boolean }) {
                         </div>
                         <div className="p-3.5 rounded-xl bg-purple-500/5 border border-purple-500/25 space-y-1.5">
                             <div className="font-bold text-purple-300 flex items-center gap-1.5"><Cpu className="w-3.5 h-3.5" /> Kiến trúc & Công nghệ</div>
-                            <p className="text-[11.5px]">Xây dựng theo chuẩn <b className="text-amber-200">Modular Clean Code (mỗi file ≤ 100 dòng)</b>, Smart Router đa model Gemini và đồng bộ Supabase Cloud realtime.</p>
+                            <p className="text-[11.5px]">Xây dựng với Next.js, TypeScript, Smart Router đa model Gemini và đồng bộ hồ sơ Supabase Cloud khi đăng nhập.</p>
                             <div className="flex flex-wrap gap-1 pt-0.5">{TECH_STACK.map((t, i) => <span key={i} className="text-[10px] px-2 py-0.5 rounded bg-slate-900 border border-slate-700 text-slate-200 font-mono flex items-center gap-1"><Code2 className="w-2.5 h-2.5 text-purple-400" />{t}</span>)}</div>
                         </div>
                     </div>
